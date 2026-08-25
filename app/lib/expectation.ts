@@ -1,5 +1,5 @@
 import { dimensions, levels } from "../survey-data";
-import { isKnownLeader } from "../leaders";
+import { dimensionCountFor, isKnownLeader } from "../leaders";
 
 export type ExpectationAnswerInput = {
   dimension: number;
@@ -48,8 +48,10 @@ export function classifyAverage(average: number): ExpectationResult["classificat
 }
 
 export function calculateExpectationResult(expectedLevels: number[]): ExpectationResult {
-  if (expectedLevels.length !== dimensions.length) {
-    throw new Error(`São necessários ${dimensions.length} níveis esperados para calcular o resultado.`);
+  // O número de dimensões varia com o líder: assessorias respondem uma versão
+  // reduzida do questionário.
+  if (expectedLevels.length === 0) {
+    throw new Error("É preciso ao menos um nível esperado para calcular o resultado.");
   }
 
   const average =
@@ -78,10 +80,14 @@ export function validateExpectationSubmission(payload: unknown): ValidationResul
     return { ok: false, message: "Identificador de envio inválido." };
   }
 
-  if (!Array.isArray(input.answers) || input.answers.length !== dimensions.length) {
+  // As assessorias respondem só até "Compromisso com resultados": o total
+  // esperado depende de quem foi escolhido no campo do líder.
+  const expectedCount = dimensionCountFor(leaderName);
+
+  if (!Array.isArray(input.answers) || input.answers.length !== expectedCount) {
     return {
       ok: false,
-      message: `A pesquisa deve conter exatamente ${dimensions.length} níveis esperados.`,
+      message: `A pesquisa deve conter exatamente ${expectedCount} níveis esperados.`,
     };
   }
 
@@ -97,7 +103,7 @@ export function validateExpectationSubmission(payload: unknown): ValidationResul
     const dimension = Number(answer.dimension);
     const expectedLevel = Number(answer.expectedLevel);
 
-    if (!Number.isInteger(dimension) || dimension < 1 || dimension > dimensions.length) {
+    if (!Number.isInteger(dimension) || dimension < 1 || dimension > expectedCount) {
       return { ok: false, message: "Uma das dimensões informadas é inválida." };
     }
 

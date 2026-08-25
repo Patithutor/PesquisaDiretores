@@ -3,13 +3,10 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { dimensions, levels } from "./survey-data";
-import { isKnownLeader } from "./leaders";
+import { ASSESSOR_LAST_DIMENSION, dimensionCountFor, isAssessorLeader, isKnownLeader } from "./leaders";
 import LeaderCombobox from "./leader-combobox";
 
 const STORAGE_KEY = "sebraeExpectativaDiretoria";
-const REVIEW_STEP = dimensions.length + 1;
-const DONE_STEP = REVIEW_STEP + 1;
-const PROGRESS_STEPS = REVIEW_STEP + 1;
 
 /** Nível esperado (1 a 5) escolhido em cada dimensão, indexado pelo número da dimensão. */
 type Expectations = Record<string, number>;
@@ -56,6 +53,14 @@ export default function ExpectationPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submission, setSubmission] = useState<SubmissionResponse | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  // Assessorias respondem só até "Compromisso com resultados", então o número
+  // de etapas depende do líder escolhido na primeira tela.
+  const dimensionCount = dimensionCountFor(leaderName);
+  const activeDimensions = useMemo(() => dimensions.slice(0, dimensionCount), [dimensionCount]);
+  const reviewStep = dimensionCount + 1;
+  const doneStep = reviewStep + 1;
+  const progressSteps = reviewStep + 1;
+
   const panelRef = useRef<HTMLDivElement>(null);
   const websiteRef = useRef<HTMLInputElement>(null);
   const submissionIdRef = useRef<string | null>(null);
@@ -77,15 +82,15 @@ export default function ExpectationPage() {
   const progressLabel =
     current === 0
       ? "Início"
-      : current === REVIEW_STEP
+      : current === reviewStep
         ? "Revisão"
-        : `Dimensão ${current} de ${dimensions.length}`;
-  const progressPercent = ((Math.min(current, REVIEW_STEP) + 1) / PROGRESS_STEPS) * 100;
-  const activeDimension = current >= 1 && current <= dimensions.length ? dimensions[current - 1] : null;
+        : `Dimensão ${current} de ${dimensionCount}`;
+  const progressPercent = ((Math.min(current, reviewStep) + 1) / progressSteps) * 100;
+  const activeDimension = current >= 1 && current <= dimensionCount ? activeDimensions[current - 1] : null;
 
   const completedAnswers = useMemo(
-    () => dimensions.filter((_, index) => expectations[String(index + 1)]).length,
-    [expectations],
+    () => activeDimensions.filter((_, index) => expectations[String(index + 1)]).length,
+    [activeDimensions, expectations],
   );
 
   function goTo(step: number) {
@@ -105,7 +110,7 @@ export default function ExpectationPage() {
       if (!valid) return;
     }
 
-    if (current >= 1 && current <= dimensions.length && !expectations[String(current)]) {
+    if (current >= 1 && current <= dimensionCount && !expectations[String(current)]) {
       setAnswerError(true);
       return;
     }
@@ -115,7 +120,7 @@ export default function ExpectationPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (current !== REVIEW_STEP || submitting) return;
+    if (current !== reviewStep || submitting) return;
 
     setSubmitting(true);
     setSubmitError("");
@@ -129,7 +134,9 @@ export default function ExpectationPage() {
           submissionId: submissionIdRef.current,
           leaderName: leaderName.trim(),
           website: websiteRef.current?.value ?? "",
-          answers: dimensions.map((_, index) => ({
+          // Só as dimensões que valem para este líder: trocar de um gerente
+          // para uma assessoria pode ter deixado respostas de sobra no rascunho.
+          answers: activeDimensions.map((_, index) => ({
             dimension: index + 1,
             expectedLevel: expectations[String(index + 1)],
           })),
@@ -146,7 +153,7 @@ export default function ExpectationPage() {
 
       setSubmission(result);
       localStorage.removeItem(STORAGE_KEY);
-      goTo(DONE_STEP);
+      goTo(doneStep);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Não foi possível enviar a pesquisa.");
     } finally {
@@ -188,7 +195,7 @@ export default function ExpectationPage() {
           </div>
         </header>
 
-        {current !== DONE_STEP && (
+        {current !== doneStep && (
           <div className="progress-wrap">
             <div className="progress-meta">
               <div>
@@ -196,7 +203,7 @@ export default function ExpectationPage() {
                 <span>{progressLabel}</span>
               </div>
               <span>
-                Etapa {Math.min(current + 1, PROGRESS_STEPS)} de {PROGRESS_STEPS}
+                Etapa {Math.min(current + 1, progressSteps)} de {progressSteps}
               </span>
             </div>
             <div
@@ -204,8 +211,8 @@ export default function ExpectationPage() {
               role="progressbar"
               aria-label="Progresso"
               aria-valuemin={1}
-              aria-valuemax={PROGRESS_STEPS}
-              aria-valuenow={Math.min(current + 1, PROGRESS_STEPS)}
+              aria-valuemax={progressSteps}
+              aria-valuenow={Math.min(current + 1, progressSteps)}
             >
               <div className="bar" style={{ width: `${progressPercent}%` }} />
             </div>
@@ -224,7 +231,7 @@ export default function ExpectationPage() {
                 <p className="eyebrow">Etapa inicial</p>
                 <h1>Que nível de maturidade esperamos deste líder?</h1>
                 <p className="lead">
-                  Em cada uma das {dimensions.length} dimensões, leia as 5 descrições e escolha a que representa o
+                  Em cada uma das {dimensionCount} dimensões, leia as 5 descrições e escolha a que representa o
                   nível que o Sebrae/MT deve esperar deste líder. Não é uma avaliação da prática de hoje: é a régua
                   que a Diretoria assume como expectativa. A escala mede graus crescentes de maturidade
                   comportamental, não bom ou ruim.
@@ -247,6 +254,15 @@ export default function ExpectationPage() {
                   Esta pesquisa é anônima: não pedimos o seu nome nem o seu e-mail. Suas respostas serão
                   consolidadas com as dos demais membros da Diretoria e apresentadas apenas de forma agregada.
                 </p>
+                {isAssessorLeader(leaderName) && (
+                  <p className="expectation-note">
+                    <span className="note-icon" aria-hidden="true">!</span>
+                    <span>
+                      Assessorias não lideram equipe: o questionário vai até a dimensão {dimensionCount} (
+                      <b>{ASSESSOR_LAST_DIMENSION}</b>) e não passa pelas dimensões de liderança de pessoas.
+                    </span>
+                  </p>
+                )}
                 <p className={`error ${identityError ? "show" : ""}`} role="alert">
                   Selecione o líder para continuar.
                 </p>
@@ -258,7 +274,7 @@ export default function ExpectationPage() {
                 <div className="question-title">
                   <div className="number">{current}</div>
                   <div>
-                    <p className="eyebrow">Dimensão {current} de {dimensions.length}</p>
+                    <p className="eyebrow">Dimensão {current} de {dimensionCount}</p>
                     <h1>{activeDimension.title}</h1>
                   </div>
                 </div>
@@ -294,7 +310,7 @@ export default function ExpectationPage() {
               </section>
             )}
 
-            {current === REVIEW_STEP && (
+            {current === reviewStep && (
               <section>
                 <p className="eyebrow">Revisão</p>
                 <h1>Confira a expectativa que você definiu</h1>
@@ -307,7 +323,7 @@ export default function ExpectationPage() {
                       <p>{leaderName}</p>
                     </div>
                   </div>
-                  {dimensions.map((dimension, index) => {
+                  {activeDimensions.map((dimension, index) => {
                     const expectedLevel = expectations[String(index + 1)];
                     return (
                       <div className="review-item" key={dimension.title}>
@@ -328,7 +344,7 @@ export default function ExpectationPage() {
               </section>
             )}
 
-            {current === DONE_STEP && (
+            {current === doneStep && (
               <section className="done">
                 <div className="done-icon" aria-hidden="true">✓</div>
                 <p className="eyebrow">Concluído</p>
@@ -344,7 +360,7 @@ export default function ExpectationPage() {
             )}
           </div>
 
-          {current !== DONE_STEP && (
+          {current !== doneStep && (
             <nav className="actions" aria-label="Navegação da pesquisa">
               {current > 0 ? (
                 <button className="btn btn-secondary" type="button" onClick={() => goTo(current - 1)}>
@@ -352,7 +368,7 @@ export default function ExpectationPage() {
                 </button>
               ) : <span />}
               <div className="right-actions">
-                {current === REVIEW_STEP ? (
+                {current === reviewStep ? (
                   <button className="btn btn-primary" type="submit" disabled={submitting}>
                     {submitting ? "Gerando e enviando…" : "Enviar expectativa"}
                   </button>
@@ -368,7 +384,7 @@ export default function ExpectationPage() {
           <span>Instrumento de desenvolvimento • Sebrae / MT</span>
           <span>
             Defina a expectativa pelo papel que este líder ocupa, não por episódios recentes.
-            {completedAnswers > 0 && current !== DONE_STEP ? ` ${completedAnswers} de ${dimensions.length} dimensões definidas.` : ""}
+            {completedAnswers > 0 && current !== doneStep ? ` ${completedAnswers} de ${dimensionCount} dimensões definidas.` : ""}
           </span>
         </footer>
       </div>

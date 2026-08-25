@@ -255,7 +255,7 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
   cover.drawText("Régua de maturidade da liderança", { x: 42, y: 686, size: 10, font: bold, color: BRAND.blue });
   cover.drawText("Expectativa da Diretoria", { x: 42, y: 646, size: 28, font: bold, color: BRAND.ink });
   const introLines = wrapText(
-    "Este relatório registra o nível de maturidade que a Diretoria espera deste líder nas 16 dimensões da régua. É uma resposta anônima: consolide com as demais antes de qualquer devolutiva.",
+    `Este relatório registra o nível de maturidade que a Diretoria espera deste líder nas ${expectation.answers.length} dimensões da régua que se aplicam a ele. É uma resposta anônima: consolide com as demais antes de qualquer devolutiva.`,
     regular,
     11,
     500,

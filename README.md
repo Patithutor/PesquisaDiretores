@@ -1,9 +1,10 @@
 # Expectativa da Diretoria sobre a Liderança — Sebrae / MT
 
 Questionário da **Diretoria** da Régua de Maturidade da Liderança do Sebrae / MT.
-Para cada líder do lotacionograma, os membros da Diretoria definem, nas 16
+Para cada pessoa do lotacionograma, os membros da Diretoria definem, nas 16
 dimensões de liderança, o nível de maturidade que a instituição deve esperar
-dele — em escala de 1 a 5 com âncoras comportamentais.
+dela — em escala de 1 a 5 com âncoras comportamentais. Assessorias respondem
+uma versão mais curta, com 9 dimensões (veja abaixo).
 
 As dimensões e as âncoras vêm da aba **Diretoria** da planilha
 `Regua_Maturidade_SebraeMT_BASE.xlsx` e estão em `app/survey-data.ts`.
@@ -52,9 +53,13 @@ npm run build
 
 O campo "Líder" é o mesmo combobox com busca da PesquisaColaboradores
 (`app/leader-combobox.tsx`), alimentado por `app/leaders.ts`, gerado a partir do
-Lotacionograma simplificado do Sebrae/MT (05.08.2026): 40 líderes separados
+Lotacionograma simplificado do Sebrae/MT (05.08.2026): 44 pessoas separadas
 pelas 5 unidades organizacionais, na ordem do lotacionograma, com os nomes em
-ordem alfabética dentro de cada uma. Os cargos de assessoria ficaram de fora.
+ordem alfabética dentro de cada uma.
+
+Diferente da PesquisaColaboradores, aqui as **assessorias entram na lista** —
+marcadas com `assessor: true` — porque a Diretoria também define expectativa
+para elas.
 
 A busca ignora acentos e caixa, e casa também com o cargo e a área — "sinop"
 ou "gerente de mercado" encontram a pessoa certa. O cabeçalho de cada grupo
@@ -68,6 +73,22 @@ consolidadas juntas, sem variações de grafia.
 Quando o lotacionograma mudar, atualize `app/leaders.ts` e refaça o deploy. Um
 rascunho salvo no navegador que aponte para um líder removido tem o campo limpo
 automaticamente, em vez de travar no envio.
+
+## Questionário reduzido das assessorias
+
+Assessorias não lideram equipe, então o questionário delas termina na dimensão
+9, **Compromisso com resultados** — as dimensões 10 a 16 tratam de liderança de
+pessoas e não se aplicam.
+
+A regra vive em `dimensionCountFor()` (`app/leaders.ts`) e vale para toda a
+aplicação: a primeira tela avisa quem responde, o número de etapas e a barra de
+progresso se ajustam, e o servidor exige exatamente 9 níveis — nem mais, nem
+menos — quando o líder escolhido é uma assessoria. Nos relatórios e no
+consolidado aparecem só as dimensões respondidas.
+
+A busca é pelo **título** da dimensão, não pela posição: se a ordem da régua
+mudar, o corte continua em "Compromisso com resultados". Se esse título sumir
+da régua, o questionário fica inteiro em vez de encurtar no lugar errado.
 
 ## Armazenamento das respostas
 
@@ -90,8 +111,8 @@ depois da gravação, a resposta é preservada e o envio é confirmado normalmen
 
 `GET /api/respostas?token=$EXPORT_TOKEN` devolve um `.xlsx` consolidado com:
 
-- **Resumo** — um líder por linha, com número de respondentes, nível esperado
-  médio e classificação na régua;
+- **Resumo** — um líder por linha, com número de respondentes, quantas
+  dimensões se aplicam a ele, nível esperado médio e classificação na régua;
 - **uma aba por líder** — no layout da aba `Diretoria` da régua: dimensões nas
   linhas, respondentes nas colunas (R1..Rn), a média, o **nível esperado de
   consenso** (média arredondada para a régua de 1 a 5) e a amplitude entre o

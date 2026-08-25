@@ -99,7 +99,7 @@ function buildMessage(expectation: NormalizedExpectation, settings: EmailSetting
     `Classificação: ${expectation.result.classification}`,
     "",
     "Resposta anônima de um membro da Diretoria. Consolide com as demais antes de qualquer devolutiva.",
-    "O PDF e a planilha Excel com o detalhamento das 16 dimensões estão anexados.",
+    `O PDF e a planilha Excel com o detalhamento das ${expectation.answers.length} dimensões estão anexados.`,
   ].join("\n");
   const html = `
     <!doctype html>

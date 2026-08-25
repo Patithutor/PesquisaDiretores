@@ -51,29 +51,37 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
     ["Líderes com expectativa definida", groups.length],
     ["Respostas recebidas", submissions.length],
     [],
-    ["Líder", "Respondentes", "Nível esperado médio", "Classificação"],
+    ["Líder", "Respondentes", "Dimensões", "Nível esperado médio", "Classificação"],
     ...groups.map((group) => {
       const groupAverage = average(group.submissions.map((submission) => submission.average));
       return [
         group.leaderName,
         group.submissions.length,
+        Math.max(
+          ...group.submissions.flatMap((submission) => submission.answers.map((answer) => answer.dimension)),
+        ),
         groupAverage,
         groupAverage === null ? "Sem respostas" : classifyAverage(groupAverage),
       ];
     }),
   ]);
-  overview["!cols"] = [{ wch: 38 }, { wch: 14 }, { wch: 22 }, { wch: 20 }];
-  overview["!merges"] = [XLSX.utils.decode_range("A1:D1")];
+  overview["!cols"] = [{ wch: 38 }, { wch: 14 }, { wch: 12 }, { wch: 22 }, { wch: 20 }];
+  overview["!merges"] = [XLSX.utils.decode_range("A1:E1")];
   if (overview.B3) overview.B3.z = "dd/mm/yyyy hh:mm";
   for (let row = 8; row <= groups.length + 7; row += 1) {
-    if (overview[`C${row}`]) overview[`C${row}`].z = "0.00";
+    if (overview[`D${row}`]) overview[`D${row}`].z = "0.00";
   }
   XLSX.utils.book_append_sheet(workbook, overview, "Resumo");
 
   // Uma aba por líder, no layout da aba "Diretoria" da régua.
   for (const group of groups) {
     const respondentColumns = group.submissions.map((_, index) => `R${index + 1}`);
-    const rows = dimensions.map((dimension, index) => {
+    // Assessorias respondem uma versão reduzida da régua: a aba mostra só as
+    // dimensões que foram efetivamente respondidas para aquele líder.
+    const answeredDimensions = Math.max(
+      ...group.submissions.flatMap((submission) => submission.answers.map((answer) => answer.dimension)),
+    );
+    const rows = dimensions.slice(0, answeredDimensions).map((dimension, index) => {
       const dimensionNumber = index + 1;
       const expected = group.submissions.map((submission) => expectedLevelFor(submission, dimensionNumber));
       const present = expected.filter((level): level is number => level !== null);
@@ -92,7 +100,11 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
     const sheet = XLSX.utils.aoa_to_sheet([
       [`Líder: ${group.leaderName}`],
       [`Respondentes: ${group.submissions.length} (respostas anônimas)`],
-      ["Nível de maturidade esperado para este líder em cada dimensão."],
+      [
+        answeredDimensions < dimensions.length
+          ? `Nível esperado nas ${answeredDimensions} dimensões que se aplicam a este líder.`
+          : "Nível de maturidade esperado para este líder em cada dimensão.",
+      ],
       [],
       [
         "Nº",

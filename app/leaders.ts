@@ -1,12 +1,16 @@
-// Lista de líderes extraída do Lotacionograma simplificado do Sebrae/MT
-// (05.08.2026), sem os cargos de assessoria. As áreas seguem a ordem do
-// lotacionograma e os nomes vêm em ordem alfabética dentro de cada área.
+import { dimensions } from "./survey-data";
+
+// Lista extraída do Lotacionograma simplificado do Sebrae/MT (05.08.2026),
+// incluindo as assessorias. As áreas seguem a ordem do lotacionograma e os
+// nomes vêm em ordem alfabética dentro de cada área.
 // Atualize este arquivo quando o lotacionograma mudar.
 
 export type Leader = {
   name: string;
   role: string;
   area: string;
+  /** Assessorias não lideram equipe e respondem um questionário mais curto. */
+  assessor?: boolean;
 };
 
 export type LeaderGroup = {
@@ -26,6 +30,8 @@ export const leaderGroups = [
     leaders: [
       { name: "Denise Pimpim Lima Silva Martins", role: "Gerente de Gestão da Excelência", area: "Superintendência" },
       { name: "Élen Gandolfo Marques Yabunaka", role: "Gerente de Eventos Institucionais", area: "Superintendência" },
+      { name: "Lucimeire Dias Taques de Andrade", role: "Assessora", area: "Superintendência", assessor: true },
+      { name: "Marcia Cruz Moreira", role: "Assessora Jurídica", area: "Superintendência", assessor: true },
       { name: "Marta Regina Torezam", role: "Gerente de Comunicação e Marketing", area: "Superintendência" },
       { name: "Ricardo Willian Santiago", role: "Gerente de Inteligência Estratégica", area: "Superintendência" },
       { name: "Suleima Metelo Coelho", role: "Gerente de Desenvolvimento de Seres Humanos", area: "Superintendência" },
@@ -38,6 +44,7 @@ export const leaderGroups = [
       { name: "Camille Vieira de Oliveira Campos", role: "Gerente de Administração", area: "Diretoria de Administração e Finanças" },
       { name: "Charles Marques Padilha", role: "Gerente do Centro de Eventos do Pantanal", area: "Diretoria de Administração e Finanças" },
       { name: "Claudiney Benedito de Aquino", role: "Gerente de Contabilidade, Orçamento e Convênios", area: "Diretoria de Administração e Finanças" },
+      { name: "Helber Figueiredo Serrou Barbosa", role: "Assessor", area: "Diretoria de Administração e Finanças", assessor: true },
       { name: "Mileno Nogueira Alencar", role: "Gerente de Finanças", area: "Diretoria de Administração e Finanças" },
       { name: "Nuccia Maria Gomes Almeida Santos", role: "Coordenadora da Gerência de Administração", area: "Diretoria de Administração e Finanças" },
       { name: "Vagner Duarte", role: "Gerente de Tecnologia da Informação", area: "Diretoria de Administração e Finanças" },
@@ -50,6 +57,7 @@ export const leaderGroups = [
       { name: "Erika Dos Santos Silva", role: "Gerente de Competitividade", area: "Diretoria Técnica" },
       { name: "Fernando José de Holanda Neves Filho", role: "Gerente de Relacionamento", area: "Diretoria Técnica" },
       { name: "Leandro Silva Gonçalves", role: "Gerente de Inovação", area: "Diretoria Técnica" },
+      { name: "Marisbeth Maria Gonçalves", role: "Assessora", area: "Diretoria Técnica", assessor: true },
       { name: "Patricia Pedrotti", role: "Gerente de Mercado", area: "Diretoria Técnica" },
       { name: "Sandro Rossi de Carvalho", role: "Gerente de Desenvolvimento Territorial", area: "Diretoria Técnica" },
       { name: "Tassia Gonçalves dos Santos", role: "Gerente do Centro Sebrae de Sustentabilidade", area: "Diretoria Técnica" },
@@ -92,6 +100,27 @@ export function isKnownLeader(name: string) {
 
 export function findLeader(name: string): Leader | null {
   return leaders.find((leader) => leader.name === name) ?? null;
+}
+
+/** Última dimensão respondida por uma assessoria. */
+export const ASSESSOR_LAST_DIMENSION = "Compromisso com resultados";
+
+export function isAssessorLeader(name: string) {
+  return findLeader(name)?.assessor === true;
+}
+
+/**
+ * Quantas dimensões o questionário mostra para este líder. As assessorias não
+ * lideram equipe: param em "Compromisso com resultados", antes das dimensões
+ * de liderança de pessoas. A busca é pelo título, e não pela posição, para que
+ * a regra continue na dimensão certa se a ordem da régua mudar; sem o título
+ * na régua, o questionário fica inteiro em vez de encurtar no lugar errado.
+ */
+export function dimensionCountFor(name: string) {
+  if (!isAssessorLeader(name)) return dimensions.length;
+
+  const lastIndex = dimensions.findIndex((dimension) => dimension.title === ASSESSOR_LAST_DIMENSION);
+  return lastIndex >= 0 ? lastIndex + 1 : dimensions.length;
 }
 
 /** Remove acentos e caixa para que a busca encontre "Erika" digitando "erika". */
