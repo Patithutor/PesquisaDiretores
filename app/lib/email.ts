@@ -94,7 +94,7 @@ function buildMessage(expectation: NormalizedExpectation, settings: EmailSetting
   const text = [
     "Expectativa da Diretoria sobre a Liderança - Sebrae / MT",
     "",
-    `Líder: ${expectation.leaderName}`,
+    `Avaliado: ${expectation.leaderName}`,
     `Nível esperado médio nesta resposta: ${score}`,
     `Classificação: ${expectation.result.classification}`,
     "",
@@ -119,7 +119,7 @@ function buildMessage(expectation: NormalizedExpectation, settings: EmailSetting
               </div>
             </div>
             <table role="presentation" style="width:100%;margin-top:24px;border-collapse:collapse;font-size:14px">
-              <tr><td style="padding:8px 0;color:#536172;width:120px">Líder</td><td style="padding:8px 0;font-weight:700">${safeLeaderName}</td></tr>
+              <tr><td style="padding:8px 0;color:#536172;width:120px">Avaliado</td><td style="padding:8px 0;font-weight:700">${safeLeaderName}</td></tr>
               <tr><td style="padding:8px 0;color:#536172">Respondente</td><td style="padding:8px 0">Anônimo</td></tr>
             </table>
             <p style="margin:22px 0 0;color:#536172;font-size:13px;line-height:1.6">Esta é a expectativa de uma pessoa: o nível esperado só se fecha depois de consolidar toda a Diretoria.</p>

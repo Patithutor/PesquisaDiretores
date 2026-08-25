@@ -258,7 +258,7 @@ export default function ExpectationPage() {
                 </p>
                 <div className="fields fields-single">
                   <div className="field">
-                    <label htmlFor="leaderName">Líder <span className="required">*</span></label>
+                    <label htmlFor="leaderName">Avaliado <span className="required">*</span></label>
                     <LeaderCombobox
                       value={leaderName}
                       onChange={(name) => {
@@ -275,7 +275,7 @@ export default function ExpectationPage() {
                   consolidadas com as dos demais membros da Diretoria e apresentadas apenas de forma agregada.
                 </p>
                 <p className={`error ${identityError ? "show" : ""}`} role="alert">
-                  Selecione o líder para continuar.
+                  Selecione o avaliado para continuar.
                 </p>
               </section>
             )}
@@ -340,7 +340,7 @@ export default function ExpectationPage() {
                   <div className="review-item review-person">
                     <span className="review-number" aria-hidden="true">ID</span>
                     <div className="review-content">
-                      <b>Líder</b>
+                      <b>Avaliado</b>
                       <p>{leaderName}</p>
                     </div>
                   </div>

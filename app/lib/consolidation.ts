@@ -48,10 +48,10 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
     ["EXPECTATIVA DA DIRETORIA SOBRE A LIDERANÇA | SEBRAE / MT"],
     [],
     ["Exportado em", generatedAt],
-    ["Líderes com expectativa definida", groups.length],
+    ["Avaliados com expectativa definida", groups.length],
     ["Respostas recebidas", submissions.length],
     [],
-    ["Líder", "Respondentes", "Dimensões", "Nível esperado médio", "Classificação"],
+    ["Avaliado", "Respondentes", "Dimensões", "Nível esperado médio", "Classificação"],
     ...groups.map((group) => {
       const groupAverage = average(group.submissions.map((submission) => submission.average));
       return [
@@ -98,7 +98,7 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
     });
 
     const sheet = XLSX.utils.aoa_to_sheet([
-      [`Líder: ${group.leaderName}`],
+      [`Avaliado: ${group.leaderName}`],
       [`Respondentes: ${group.submissions.length} (respostas anônimas)`],
       [
         answeredDimensions < dimensions.length
@@ -149,7 +149,7 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
   );
   const detail = XLSX.utils.aoa_to_sheet([
     [
-      "Líder",
+      "Avaliado",
       "ID da resposta",
       "Respondida em",
       "Nº",

@@ -20,7 +20,7 @@ com o questionário na visão da Diretoria. Os 16 títulos e os 5 textos-âncora
 | | Colaboradores | Diretores (este repositório) |
 | --- | --- | --- |
 | Pergunta | Como o gestor **pratica** cada dimensão hoje | Que nível se deve **esperar** daquele líder |
-| Primeira etapa | Seleção do líder avaliado | Igual: seleção do líder |
+| Primeira etapa | Seleção do líder avaliado | Igual: seleção do avaliado |
 | Respondente | Anônimo | Anônimo |
 | Campo aberto | Comentário opcional por dimensão | Igual: comentário opcional |
 | Consolidação | Média da equipe por líder | Nível esperado de consenso por dimensão |
@@ -52,7 +52,7 @@ npm run build
 
 ## Lista de líderes
 
-O campo "Líder" é o mesmo combobox com busca da PesquisaColaboradores
+O campo "Avaliado" é o mesmo combobox com busca da PesquisaColaboradores
 (`app/leader-combobox.tsx`), alimentado por `app/leaders.ts`, gerado a partir do
 Lotacionograma simplificado do Sebrae/MT (05.08.2026): 44 pessoas separadas
 pelas 5 unidades organizacionais, na ordem do lotacionograma, com os nomes em
@@ -94,7 +94,7 @@ da régua, o questionário fica inteiro em vez de encurtar no lugar errado.
 ## Armazenamento das respostas
 
 Cada resposta é gravada como um JSON no **Vercel Blob**, em
-`expectativas/<lider>/<data>-<id>.json`. O registro guarda apenas o líder, os
+`expectativas/<avaliado>/<data>-<id>.json`. O registro guarda apenas o avaliado, os
 níveis esperados e os comentários — nunca IP ou qualquer identificação de quem
 respondeu.
 
@@ -112,9 +112,9 @@ depois da gravação, a resposta é preservada e o envio é confirmado normalmen
 
 `GET /api/respostas?token=$EXPORT_TOKEN` devolve um `.xlsx` consolidado com:
 
-- **Resumo** — um líder por linha, com número de respondentes, quantas
+- **Resumo** — um avaliado por linha, com número de respondentes, quantas
   dimensões se aplicam a ele, nível esperado médio e classificação na régua;
-- **uma aba por líder** — no layout da aba `Diretoria` da régua: dimensões nas
+- **uma aba por avaliado** — no layout da aba `Diretoria` da régua: dimensões nas
   linhas, respondentes nas colunas (R1..Rn), a média, o **nível esperado de
   consenso** (média arredondada para a régua de 1 a 5) e a amplitude entre o
   menor e o maior nível, que mostra onde a Diretoria ainda não convergiu sobre

@@ -77,7 +77,7 @@ export function validateExpectationSubmission(payload: unknown): ValidationResul
   // expectativas definidas para um mesmo gestor sejam consolidadas juntas,
   // sem variações de grafia.
   if (!isKnownLeader(leaderName)) {
-    return { ok: false, message: "Selecione um líder da lista." };
+    return { ok: false, message: "Selecione um avaliado da lista." };
   }
 
   if (submissionId && !SUBMISSION_ID_PATTERN.test(submissionId)) {

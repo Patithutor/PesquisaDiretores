@@ -144,9 +144,9 @@ export default function LeaderCombobox({ value, onChange }: Props) {
       <span className="combobox-arrow" aria-hidden="true" />
 
       {open && (
-        <div className="combobox-list" id={listId} role="listbox" ref={listRef} aria-label="Líderes">
+        <div className="combobox-list" id={listId} role="listbox" ref={listRef} aria-label="Avaliados">
           {results.length === 0 && (
-            <p className="combobox-empty">Nenhum líder encontrado para “{query.trim()}”.</p>
+            <p className="combobox-empty">Nenhum avaliado encontrado para “{query.trim()}”.</p>
           )}
           {groups.map((group) => (
             <div className="combobox-group" role="group" aria-label={group.area} key={group.area}>

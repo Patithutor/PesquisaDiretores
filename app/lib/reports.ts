@@ -202,7 +202,7 @@ export function generateSpreadsheetReport(expectation: NormalizedExpectation): B
   const summary = XLSX.utils.aoa_to_sheet([
     ["EXPECTATIVA DA DIRETORIA SOBRE A LIDERANÇA | SEBRAE / MT"],
     [],
-    ["Líder", expectation.leaderName],
+    ["Avaliado", expectation.leaderName],
     ["Respondente", "Anônimo"],
     ["Respondida em", expectation.completedAt],
     [],
@@ -297,7 +297,7 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
     });
   });
 
-  cover.drawText("Líder", { x: 42, y: 236, size: 8, font: bold, color: BRAND.blue });
+  cover.drawText("Avaliado", { x: 42, y: 236, size: 8, font: bold, color: BRAND.blue });
   const leaderLines = wrapText(expectation.leaderName, bold, 12, 248).slice(0, 2);
   drawTextLines(cover, leaderLines, {
     x: 42,
