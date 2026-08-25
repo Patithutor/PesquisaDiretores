@@ -3,25 +3,19 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { dimensions, levels } from "./survey-data";
-import { directorates, isKnownDirectorate } from "./directorates";
+import { isKnownLeader } from "./leaders";
+import LeaderCombobox from "./leader-combobox";
 
 const STORAGE_KEY = "sebraeExpectativaDiretoria";
 const REVIEW_STEP = dimensions.length + 1;
 const DONE_STEP = REVIEW_STEP + 1;
 const PROGRESS_STEPS = REVIEW_STEP + 1;
-const NAME_MAX_LENGTH = 120;
-const ROLE_MAX_LENGTH = 120;
-
-type Identity = {
-  respondentName: string;
-  respondentRole: string;
-  directorate: string;
-};
 
 /** Nível esperado (1 a 5) escolhido em cada dimensão, indexado pelo número da dimensão. */
 type Expectations = Record<string, number>;
 
-type SavedDraft = Identity & {
+type SavedDraft = {
+  leaderName: string;
   expectations: Expectations;
 };
 
@@ -33,34 +27,30 @@ type SubmissionResponse = {
   savedLocally?: boolean;
 };
 
-const EMPTY_IDENTITY: Identity = { respondentName: "", respondentRole: "", directorate: "" };
-
 function readSavedDraft(): SavedDraft | null {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return null;
 
     const parsed = JSON.parse(saved);
-    if (typeof parsed?.respondentName !== "string") return null;
-
-    return {
-      respondentName: parsed.respondentName.slice(0, NAME_MAX_LENGTH),
-      respondentRole: typeof parsed.respondentRole === "string" ? parsed.respondentRole.slice(0, ROLE_MAX_LENGTH) : "",
-      // Uma instância que saiu da estrutura não seleciona mais nada no campo:
+    if (typeof parsed?.leaderName === "string") {
+      // Um líder que saiu do lotacionograma não seleciona mais nada no campo:
       // melhor limpar do que deixar o rascunho travar no envio.
-      directorate: isKnownDirectorate(parsed.directorate) ? parsed.directorate : "",
-      expectations: parsed.expectations ?? {},
-    };
+      const leaderName = isKnownLeader(parsed.leaderName) ? parsed.leaderName : "";
+      return { leaderName, expectations: parsed.expectations ?? {} };
+    }
   } catch {
     return null;
   }
+
+  return null;
 }
 
 export default function ExpectationPage() {
   const [current, setCurrent] = useState(0);
-  const [identity, setIdentity] = useState<Identity>(EMPTY_IDENTITY);
+  const [leaderName, setLeaderName] = useState("");
   const [expectations, setExpectations] = useState<Expectations>({});
-  const [identityError, setIdentityError] = useState("");
+  const [identityError, setIdentityError] = useState(false);
   const [answerError, setAnswerError] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -73,17 +63,16 @@ export default function ExpectationPage() {
   useEffect(() => {
     const draft = readSavedDraft();
     if (draft) {
-      const { expectations: savedExpectations, ...savedIdentity } = draft;
-      setIdentity(savedIdentity);
-      setExpectations(savedExpectations);
+      setLeaderName(draft.leaderName);
+      setExpectations(draft.expectations);
     }
     setHydrated(true);
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...identity, expectations }));
-  }, [expectations, hydrated, identity]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ leaderName, expectations }));
+  }, [expectations, hydrated, leaderName]);
 
   const progressLabel =
     current === 0
@@ -101,7 +90,7 @@ export default function ExpectationPage() {
 
   function goTo(step: number) {
     setCurrent(step);
-    setIdentityError("");
+    setIdentityError(false);
     setAnswerError(false);
     requestAnimationFrame(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -109,23 +98,11 @@ export default function ExpectationPage() {
     });
   }
 
-  function updateIdentity(patch: Partial<Identity>) {
-    submissionIdRef.current = null;
-    setSubmitError("");
-    setIdentityError("");
-    setIdentity((previous) => ({ ...previous, ...patch }));
-  }
-
   function continueSurvey() {
     if (current === 0) {
-      if (identity.respondentName.trim().length < 3) {
-        setIdentityError("Informe o seu nome completo para continuar.");
-        return;
-      }
-      if (!isKnownDirectorate(identity.directorate)) {
-        setIdentityError("Selecione a sua diretoria ou instância para continuar.");
-        return;
-      }
+      const valid = isKnownLeader(leaderName);
+      setIdentityError(!valid);
+      if (!valid) return;
     }
 
     if (current >= 1 && current <= dimensions.length && !expectations[String(current)]) {
@@ -150,9 +127,7 @@ export default function ExpectationPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           submissionId: submissionIdRef.current,
-          respondentName: identity.respondentName.trim(),
-          respondentRole: identity.respondentRole.trim(),
-          directorate: identity.directorate,
+          leaderName: leaderName.trim(),
           website: websiteRef.current?.value ?? "",
           answers: dimensions.map((_, index) => ({
             dimension: index + 1,
@@ -203,13 +178,13 @@ export default function ExpectationPage() {
               <span className="brand-state">MT</span>
             </a>
             <div className="brand-product">
-              <b>Expectativa Institucional da Liderança</b>
+              <b>Expectativa da Diretoria sobre a Liderança</b>
               <span>Régua de maturidade da liderança</span>
             </div>
           </div>
           <div className="save-state">
             <span className="save-dot" aria-hidden="true" />
-            Rascunho salvo neste dispositivo
+            Resposta anônima, salva neste dispositivo
           </div>
         </header>
 
@@ -247,60 +222,33 @@ export default function ExpectationPage() {
             {current === 0 && (
               <section>
                 <p className="eyebrow">Etapa inicial</p>
-                <h1>Que nível de maturidade o Sebrae/MT espera da sua liderança?</h1>
+                <h1>Que nível de maturidade esperamos deste líder?</h1>
                 <p className="lead">
                   Em cada uma das {dimensions.length} dimensões, leia as 5 descrições e escolha a que representa o
-                  nível que a instituição deve esperar da sua liderança. Não se trata de avaliar um gestor
-                  específico nem a prática de hoje: é a régua que a Diretoria assume como expectativa.
+                  nível que o Sebrae/MT deve esperar deste líder. Não é uma avaliação da prática de hoje: é a régua
+                  que a Diretoria assume como expectativa. A escala mede graus crescentes de maturidade
+                  comportamental, não bom ou ruim.
                 </p>
                 <div className="fields fields-single">
                   <div className="field">
-                    <label htmlFor="respondentName">Nome completo <span className="required">*</span></label>
-                    <input
-                      id="respondentName"
-                      name="respondentName"
-                      autoComplete="name"
-                      maxLength={NAME_MAX_LENGTH}
-                      value={identity.respondentName}
-                      onChange={(event) => updateIdentity({ respondentName: event.target.value })}
-                    />
-                  </div>
-                  <div className="field">
-                    <label htmlFor="directorate">Diretoria / instância <span className="required">*</span></label>
-                    <select
-                      id="directorate"
-                      name="directorate"
-                      value={identity.directorate}
-                      onChange={(event) => updateIdentity({ directorate: event.target.value })}
-                    >
-                      <option value="">Selecione…</option>
-                      {directorates.map((directorate) => (
-                        <option key={directorate} value={directorate}>
-                          {directorate}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="field">
-                    <label htmlFor="respondentRole">
-                      Cargo <span className="optional-label">(opcional)</span>
-                    </label>
-                    <input
-                      id="respondentRole"
-                      name="respondentRole"
-                      maxLength={ROLE_MAX_LENGTH}
-                      value={identity.respondentRole}
-                      onChange={(event) => updateIdentity({ respondentRole: event.target.value })}
+                    <label htmlFor="leaderName">Líder <span className="required">*</span></label>
+                    <LeaderCombobox
+                      value={leaderName}
+                      onChange={(name) => {
+                        submissionIdRef.current = null;
+                        setSubmitError("");
+                        setLeaderName(name);
+                        setIdentityError(false);
+                      }}
                     />
                   </div>
                 </div>
                 <p className="lead privacy-note">
-                  Esta pesquisa não é anônima: a expectativa institucional é uma posição assumida, e sua resposta
-                  será consolidada com a dos demais membros da Diretoria para fechar o nível esperado de cada
-                  dimensão.
+                  Esta pesquisa é anônima: não pedimos o seu nome nem o seu e-mail. Suas respostas serão
+                  consolidadas com as dos demais membros da Diretoria e apresentadas apenas de forma agregada.
                 </p>
                 <p className={`error ${identityError ? "show" : ""}`} role="alert">
-                  {identityError}
+                  Selecione o líder para continuar.
                 </p>
               </section>
             )}
@@ -315,8 +263,7 @@ export default function ExpectationPage() {
                   </div>
                 </div>
                 <p className="instruction">
-                  Qual destes níveis o Sebrae/MT deve esperar da sua liderança nesta dimensão? Escolha apenas uma
-                  opção.
+                  Qual destes níveis o Sebrae/MT deve esperar deste líder nesta dimensão? Escolha apenas uma opção.
                 </p>
                 <div className="options">
                   {activeDimension.options.map((option, index) => (
@@ -356,12 +303,8 @@ export default function ExpectationPage() {
                   <div className="review-item review-person">
                     <span className="review-number" aria-hidden="true">ID</span>
                     <div className="review-content">
-                      <b>{identity.respondentName.trim()}</b>
-                      <p>
-                        {identity.respondentRole.trim()
-                          ? `${identity.respondentRole.trim()} — ${identity.directorate}`
-                          : identity.directorate}
-                      </p>
+                      <b>Líder</b>
+                      <p>{leaderName}</p>
                     </div>
                   </div>
                   {dimensions.map((dimension, index) => {
@@ -391,8 +334,8 @@ export default function ExpectationPage() {
                 <p className="eyebrow">Concluído</p>
                 <h1>Expectativa registrada</h1>
                 <p className="lead">
-                  Sua expectativa foi registrada e será consolidada com a dos demais membros da Diretoria para
-                  fechar o nível esperado de cada dimensão.
+                  Sua expectativa foi registrada de forma anônima e será consolidada com a dos demais membros da
+                  Diretoria para fechar o nível esperado de cada dimensão.
                   {submission?.emailSent
                     ? " Os relatórios em PDF e Excel também foram enviados aos responsáveis pela pesquisa."
                     : ""}
@@ -424,7 +367,7 @@ export default function ExpectationPage() {
         <footer className="privacy">
           <span>Instrumento de desenvolvimento • Sebrae / MT</span>
           <span>
-            Defina a expectativa pensando na liderança como um todo, não em pessoas específicas.
+            Defina a expectativa pelo papel que este líder ocupa, não por episódios recentes.
             {completedAnswers > 0 && current !== DONE_STEP ? ` ${completedAnswers} de ${dimensions.length} dimensões definidas.` : ""}
           </span>
         </footer>

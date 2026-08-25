@@ -45,7 +45,7 @@ function slugify(value: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-zA-Z0-9_-]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .toLowerCase() || "respondente";
+    .toLowerCase() || "lider";
 }
 
 function formatDate(date: Date) {
@@ -197,13 +197,12 @@ export function generateSpreadsheetReport(expectation: NormalizedExpectation): B
   }
 
   const classificationFormula =
-    'IF(B9<1.8,"Inércia",IF(B9<2.6,"Acreditar",IF(B9<3.4,"Praticar",IF(B9<4.2,"Melhorar","Compartilhar"))))';
+    'IF(B8<1.8,"Inércia",IF(B8<2.6,"Acreditar",IF(B8<3.4,"Praticar",IF(B8<4.2,"Melhorar","Compartilhar"))))';
   const summary = XLSX.utils.aoa_to_sheet([
-    ["EXPECTATIVA INSTITUCIONAL DA LIDERANÇA | SEBRAE / MT"],
+    ["EXPECTATIVA DA DIRETORIA SOBRE A LIDERANÇA | SEBRAE / MT"],
     [],
-    ["Respondente", expectation.respondentName],
-    ["Cargo", expectation.respondentRole || "Não informado"],
-    ["Diretoria / instância", expectation.directorate],
+    ["Líder", expectation.leaderName],
+    ["Respondente", "Anônimo"],
     ["Respondida em", expectation.completedAt],
     [],
     ["EXPECTATIVA DECLARADA"],
@@ -217,23 +216,23 @@ export function generateSpreadsheetReport(expectation: NormalizedExpectation): B
     ["3,40 a 4,19", "Melhorar"],
     ["4,20 a 5,00", "Compartilhar"],
   ]);
-  summary["!merges"] = [XLSX.utils.decode_range("A1:D1"), XLSX.utils.decode_range("A8:D8")];
+  summary["!merges"] = [XLSX.utils.decode_range("A1:D1"), XLSX.utils.decode_range("A7:D7")];
   summary["!cols"] = [{ wch: 24 }, { wch: 46 }, { wch: 18 }, { wch: 18 }];
-  summary.B6.z = "dd/mm/yyyy hh:mm";
-  summary.B9 = {
+  summary.B5.z = "dd/mm/yyyy hh:mm";
+  summary.B8 = {
     t: "n",
     v: expectation.result.average,
     f: `ROUND(AVERAGE('Respostas'!C2:C${expectation.answers.length + 1}),2)`,
     z: "0.00",
   };
-  summary.B10 = { t: "s", v: expectation.result.classification, f: classificationFormula };
+  summary.B9 = { t: "s", v: expectation.result.classification, f: classificationFormula };
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, summary, "Resumo");
   XLSX.utils.book_append_sheet(workbook, responses, "Respostas");
   workbook.Props = {
-    Title: "Expectativa institucional da liderança",
-    Subject: `Expectativa declarada por ${expectation.respondentName}`,
+    Title: "Expectativa da Diretoria sobre a liderança",
+    Subject: `Expectativa definida para ${expectation.leaderName}`,
     Author: "Sebrae / MT",
     CreatedDate: expectation.completedAt,
   };
@@ -251,12 +250,12 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
   const [pageWidth, pageHeight] = PageSizes.A4;
 
   const cover = document.addPage(PageSizes.A4);
-  drawHeader(cover, bold, logoPath, "EXPECTATIVA INSTITUCIONAL");
+  drawHeader(cover, bold, logoPath, "EXPECTATIVA DA DIRETORIA");
 
   cover.drawText("Régua de maturidade da liderança", { x: 42, y: 686, size: 10, font: bold, color: BRAND.blue });
-  cover.drawText("Expectativa institucional", { x: 42, y: 646, size: 28, font: bold, color: BRAND.ink });
+  cover.drawText("Expectativa da Diretoria", { x: 42, y: 646, size: 28, font: bold, color: BRAND.ink });
   const introLines = wrapText(
-    "Este relatório registra o nível de maturidade que este membro da Diretoria espera da liderança do Sebrae/MT nas 16 dimensões da régua. Consolide com as demais respostas da Diretoria para fechar a expectativa institucional.",
+    "Este relatório registra o nível de maturidade que a Diretoria espera deste líder nas 16 dimensões da régua. É uma resposta anônima: consolide com as demais antes de qualquer devolutiva.",
     regular,
     11,
     500,
@@ -297,9 +296,9 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
     });
   });
 
-  cover.drawText("Respondente", { x: 42, y: 236, size: 8, font: bold, color: BRAND.blue });
-  const respondentLines = wrapText(expectation.respondentName, bold, 12, 248).slice(0, 2);
-  const afterName = drawTextLines(cover, respondentLines, {
+  cover.drawText("Líder", { x: 42, y: 236, size: 8, font: bold, color: BRAND.blue });
+  const leaderLines = wrapText(expectation.leaderName, bold, 12, 248).slice(0, 2);
+  drawTextLines(cover, leaderLines, {
     x: 42,
     y: 216,
     size: 12,
@@ -307,13 +306,9 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
     font: bold,
     color: BRAND.ink,
   });
-  const identityLines = [
-    ...wrapText(expectation.respondentRole || "Cargo não informado", regular, 9.5, 248).slice(0, 2),
-    ...wrapText(expectation.directorate, regular, 9.5, 248).slice(0, 2),
-  ];
-  drawTextLines(cover, identityLines, {
+  drawTextLines(cover, ["Resposta anônima de um membro da Diretoria"], {
     x: 42,
-    y: afterName - 4,
+    y: 184,
     size: 9.5,
     lineHeight: 12,
     font: regular,
@@ -385,7 +380,7 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
   const pages = document.getPages();
   pages.forEach((currentPage, index) => drawFooter(currentPage, regular, index + 1, pages.length));
 
-  document.setTitle(`Expectativa institucional da liderança - ${expectation.respondentName}`);
+  document.setTitle(`Expectativa da Diretoria - ${expectation.leaderName}`);
   document.setAuthor("Sebrae / MT");
   document.setSubject(
     `Nível esperado: ${expectation.result.classification} (${formatScore(expectation.result.average)})`,
@@ -396,7 +391,7 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
 }
 
 export async function generateReports(expectation: NormalizedExpectation): Promise<GeneratedReports> {
-  const baseName = `expectativa-institucional-${slugify(expectation.respondentName)}-${expectation.submissionId.slice(0, 8)}`;
+  const baseName = `expectativa-diretoria-${slugify(expectation.leaderName)}-${expectation.submissionId.slice(0, 8)}`;
   const [pdfContent, spreadsheetContent] = await Promise.all([
     generatePdfReport(expectation),
     Promise.resolve(generateSpreadsheetReport(expectation)),

@@ -1,9 +1,9 @@
-# Expectativa Institucional da Liderança — Sebrae / MT
+# Expectativa da Diretoria sobre a Liderança — Sebrae / MT
 
 Questionário da **Diretoria** da Régua de Maturidade da Liderança do Sebrae / MT.
-Cada membro da Diretoria define, nas 16 dimensões de liderança, o nível de
-maturidade que a instituição deve esperar da sua liderança — em escala de 1 a 5
-com âncoras comportamentais.
+Para cada líder do lotacionograma, os membros da Diretoria definem, nas 16
+dimensões de liderança, o nível de maturidade que a instituição deve esperar
+dele — em escala de 1 a 5 com âncoras comportamentais.
 
 As dimensões e as âncoras vêm da aba **Diretoria** da planilha
 `Regua_Maturidade_SebraeMT_BASE.xlsx` e estão em `app/survey-data.ts`.
@@ -17,14 +17,18 @@ com o questionário na visão da Diretoria. Os 16 títulos e os 5 textos-âncora
 
 | | Colaboradores | Diretores (este repositório) |
 | --- | --- | --- |
-| Pergunta | Como o gestor **pratica** cada dimensão hoje | Que nível a instituição deve **esperar** da liderança |
-| Alvo | Um líder específico do lotacionograma | A liderança do Sebrae/MT como um todo |
-| Respondente | Anônimo | Identificado (nome, cargo e diretoria) |
-| Campo aberto | Comentário opcional por dimensão | Não há |
+| Pergunta | Como o gestor **pratica** cada dimensão hoje | Que nível se deve **esperar** daquele líder |
+| Primeira etapa | Seleção do líder avaliado | Igual: seleção do líder |
+| Respondente | Anônimo | Anônimo |
+| Campo aberto | Comentário opcional por dimensão | Não há — a aba Diretoria não tem |
 | Consolidação | Média da equipe por líder | Nível esperado de consenso por dimensão |
 
-Cada envio gera o relatório de uma única resposta. A expectativa institucional só
-se fecha depois de consolidar as respostas de toda a Diretoria.
+As duas pesquisas se consolidam pela mesma chave — o nome do líder no
+lotacionograma —, o que permite comparar a prática percebida pela equipe com a
+expectativa definida pela Diretoria.
+
+Cada envio gera o relatório de uma única resposta. O nível esperado só se fecha
+depois de consolidar as respostas de toda a Diretoria.
 
 ## Executar localmente
 
@@ -44,26 +48,33 @@ npm run check
 npm run build
 ```
 
-## Identificação do respondente
+## Lista de líderes
 
-Diferente da pesquisa de colaboradores, esta **não é anônima**: a expectativa
-institucional é uma posição assumida, e sem saber quem respondeu não há como
-fechar o consenso da Diretoria depois.
+O campo "Líder" é o mesmo combobox com busca da PesquisaColaboradores
+(`app/leader-combobox.tsx`), alimentado por `app/leaders.ts`, gerado a partir do
+Lotacionograma simplificado do Sebrae/MT (05.08.2026): 40 líderes separados
+pelas 5 unidades organizacionais, na ordem do lotacionograma, com os nomes em
+ordem alfabética dentro de cada uma. Os cargos de assessoria ficaram de fora.
 
-O formulário pede nome completo (obrigatório), diretoria ou instância
-(obrigatório) e cargo (opcional). A lista de instâncias está em
-`app/directorates.ts`: são as 5 unidades organizacionais do Lotacionograma
-simplificado do Sebrae/MT (05.08.2026), na ordem do lotacionograma — a mesma em
-que a PesquisaColaboradores agrupa os líderes. A escolha também é validada no
-servidor. Atualize esse arquivo quando a estrutura mudar — um rascunho salvo no
-navegador que aponte para uma instância removida tem o campo limpo
+A busca ignora acentos e caixa, e casa também com o cargo e a área — "sinop"
+ou "gerente de mercado" encontram a pessoa certa. O cabeçalho de cada grupo
+acompanha a rolagem, a busca esconde os grupos sem resultado e a navegação por
+teclado corre a lista inteira, atravessando as fronteiras de grupo.
+
+O nome escolhido também é validado no servidor contra essa lista. É o que
+garante que todas as expectativas definidas para um mesmo gestor sejam
+consolidadas juntas, sem variações de grafia.
+
+Quando o lotacionograma mudar, atualize `app/leaders.ts` e refaça o deploy. Um
+rascunho salvo no navegador que aponte para um líder removido tem o campo limpo
 automaticamente, em vez de travar no envio.
 
 ## Armazenamento das respostas
 
 Cada resposta é gravada como um JSON no **Vercel Blob**, em
-`expectativas/<respondente>/<data>-<id>.json`, com o respondente, a diretoria e
-os níveis esperados das 16 dimensões.
+`expectativas/<lider>/<data>-<id>.json`. O registro guarda apenas o líder e os
+níveis esperados das 16 dimensões — nunca IP ou qualquer identificação de quem
+respondeu.
 
 Crie o Blob store no painel do Vercel com **acesso privado** (o modo de acesso
 não pode ser alterado depois da criação) e conecte-o ao projeto; o
@@ -79,12 +90,13 @@ depois da gravação, a resposta é preservada e o envio é confirmado normalmen
 
 `GET /api/respostas?token=$EXPORT_TOKEN` devolve um `.xlsx` consolidado com:
 
-- **Resumo** — um respondente por linha, com cargo, diretoria, nível esperado
-  médio e classificação, além do nível médio de toda a Diretoria;
-- **Expectativa institucional** — no layout da aba `Diretoria` da régua:
-  dimensões nas linhas, respondentes nas colunas, a média, o **nível esperado
-  de consenso** (média arredondada para a régua de 1 a 5) e a amplitude entre o
-  menor e o maior nível, que mostra onde a Diretoria ainda não convergiu;
+- **Resumo** — um líder por linha, com número de respondentes, nível esperado
+  médio e classificação na régua;
+- **uma aba por líder** — no layout da aba `Diretoria` da régua: dimensões nas
+  linhas, respondentes nas colunas (R1..Rn), a média, o **nível esperado de
+  consenso** (média arredondada para a régua de 1 a 5) e a amplitude entre o
+  menor e o maior nível, que mostra onde a Diretoria ainda não convergiu sobre
+  aquele líder;
 - **Respostas** — formato longo, uma linha por dimensão respondida;
 - **Escala** — níveis e faixas de classificação.
 

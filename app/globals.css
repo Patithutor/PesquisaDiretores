@@ -351,8 +351,7 @@ h1 {
   font-weight: 700;
 }
 
-.field input,
-.field select {
+.field input {
   width: 100%;
   padding: 14px 15px;
   color: var(--ink);
@@ -365,35 +364,112 @@ h1 {
 
 
 
+.combobox {
+  position: relative;
+}
+
+.combobox input {
+  /* Espaço à direita para a seta. */
+  padding-right: 44px;
+}
+
+.combobox-arrow {
+  position: absolute;
+  top: 24px;
+  right: 17px;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: translateY(-50%) rotate(45deg);
+  pointer-events: none;
+}
+
+.combobox-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--white);
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 18px 40px rgb(11 37 116 / 14%);
+}
+
+/* O nome da diretoria acompanha a rolagem do grupo a que pertence. */
+.combobox-group-label {
+  position: sticky;
+  top: -6px;
+  margin: 0;
+  padding: 10px 12px 6px;
+  background: var(--white);
+  color: var(--sebrae-blue);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.combobox-group + .combobox-group .combobox-group-label {
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+}
+
+.combobox-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.combobox-option[data-highlighted="true"] {
+  background: rgb(42 79 218 / 8%);
+}
+
+.combobox-option[aria-selected="true"] b {
+  color: var(--sebrae-blue);
+}
+
+.combobox-option b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.combobox-option span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.combobox-empty {
+  margin: 0;
+  padding: 12px;
+  color: var(--muted);
+}
+
+.combobox-hint {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
 
 .field input::placeholder {
   color: #7a8796;
 }
 
 .field input:focus,
-.field select:focus {
+.combobox input:focus {
   border-color: var(--sebrae-blue);
   box-shadow: 0 0 0 4px rgb(42 79 218 / 12%);
 }
 
 .required {
   color: var(--danger);
-}
-
-.optional-label {
-  color: var(--muted);
-  font-weight: 400;
-}
-
-.field select {
-  appearance: none;
-  cursor: pointer;
-  background-image: linear-gradient(45deg, transparent 50%, var(--sebrae-blue) 50%),
-    linear-gradient(135deg, var(--sebrae-blue) 50%, transparent 50%);
-  background-position: calc(100% - 20px) center, calc(100% - 14px) center;
-  background-size: 6px 6px, 6px 6px;
-  background-repeat: no-repeat;
-  padding-right: 42px;
 }
 
 .question-title {

@@ -1,8 +1,5 @@
 import { dimensions, levels } from "../survey-data";
-import { isKnownDirectorate } from "../directorates";
-
-export const RESPONDENT_NAME_MAX_LENGTH = 120;
-export const RESPONDENT_ROLE_MAX_LENGTH = 120;
+import { isKnownLeader } from "../leaders";
 
 export type ExpectationAnswerInput = {
   dimension: number;
@@ -12,9 +9,7 @@ export type ExpectationAnswerInput = {
 
 export type ExpectationSubmissionInput = {
   submissionId?: string;
-  respondentName: string;
-  respondentRole: string;
-  directorate: string;
+  leaderName: string;
   website?: string;
   answers: ExpectationAnswerInput[];
 };
@@ -26,9 +21,7 @@ export type ExpectationResult = {
 
 export type NormalizedExpectation = {
   submissionId: string;
-  respondentName: string;
-  respondentRole: string;
-  directorate: string;
+  leaderName: string;
   completedAt: Date;
   answers: Array<
     ExpectationAnswerInput & {
@@ -70,25 +63,15 @@ export function validateExpectationSubmission(payload: unknown): ValidationResul
   }
 
   const input = payload as Partial<ExpectationSubmissionInput>;
-  const respondentName = typeof input.respondentName === "string" ? input.respondentName.trim() : "";
-  const respondentRole = typeof input.respondentRole === "string" ? input.respondentRole.trim() : "";
-  const directorate = typeof input.directorate === "string" ? input.directorate.trim() : "";
+  const leaderName = typeof input.leaderName === "string" ? input.leaderName.trim() : "";
   const website = typeof input.website === "string" ? input.website.trim() : "";
   const submissionId = typeof input.submissionId === "string" ? input.submissionId.trim() : undefined;
 
-  // A expectativa institucional é uma posição assumida, não uma percepção
-  // anônima: sem saber quem respondeu não há como validar nem fechar o
-  // consenso da Diretoria depois.
-  if (respondentName.length < 3 || respondentName.length > RESPONDENT_NAME_MAX_LENGTH) {
-    return { ok: false, message: "Informe o seu nome completo." };
-  }
-
-  if (respondentRole.length > RESPONDENT_ROLE_MAX_LENGTH) {
-    return { ok: false, message: `O cargo deve ter no máximo ${RESPONDENT_ROLE_MAX_LENGTH} caracteres.` };
-  }
-
-  if (!isKnownDirectorate(directorate)) {
-    return { ok: false, message: "Selecione a sua diretoria ou instância na lista." };
+  // O líder precisa estar no lotacionograma: é o que garante que as
+  // expectativas definidas para um mesmo gestor sejam consolidadas juntas,
+  // sem variações de grafia.
+  if (!isKnownLeader(leaderName)) {
+    return { ok: false, message: "Selecione um líder da lista." };
   }
 
   if (submissionId && !SUBMISSION_ID_PATTERN.test(submissionId)) {
@@ -136,9 +119,7 @@ export function validateExpectationSubmission(payload: unknown): ValidationResul
     ok: true,
     value: {
       submissionId,
-      respondentName,
-      respondentRole,
-      directorate,
+      leaderName,
       website,
       answers: normalizedAnswers,
     },
@@ -150,9 +131,7 @@ export function normalizeExpectation(input: ExpectationSubmissionInput): Normali
 
   return {
     submissionId: input.submissionId ?? crypto.randomUUID(),
-    respondentName: input.respondentName,
-    respondentRole: input.respondentRole,
-    directorate: input.directorate,
+    leaderName: input.leaderName,
     completedAt: new Date(),
     answers: input.answers.map((answer) => {
       const dimension = dimensions[answer.dimension - 1];

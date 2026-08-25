@@ -15,9 +15,7 @@ export type StoredAnswer = {
 
 export type StoredSubmission = {
   submissionId: string;
-  respondentName: string;
-  respondentRole: string;
-  directorate: string;
+  leaderName: string;
   completedAt: string;
   average: number;
   classification: string;
@@ -34,15 +32,15 @@ function slugify(value: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-zA-Z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .toLowerCase() || "sem-nome";
+    .toLowerCase() || "sem-lider";
 }
 
+// Não guardamos IP, cabeçalhos nem qualquer identificação de quem respondeu:
+// a tela promete anonimato, como na pesquisa de colaboradores.
 function toStoredSubmission(expectation: NormalizedExpectation): StoredSubmission {
   return {
     submissionId: expectation.submissionId,
-    respondentName: expectation.respondentName,
-    respondentRole: expectation.respondentRole,
-    directorate: expectation.directorate,
+    leaderName: expectation.leaderName,
     completedAt: expectation.completedAt.toISOString(),
     average: expectation.result.average,
     classification: expectation.result.classification,
@@ -60,7 +58,7 @@ export async function saveSubmission(expectation: NormalizedExpectation) {
   if (!isBlobConfigured()) return null;
 
   const record = toStoredSubmission(expectation);
-  const pathname = `${PREFIX}${slugify(expectation.respondentName)}/${record.completedAt}-${expectation.submissionId}.json`;
+  const pathname = `${PREFIX}${slugify(expectation.leaderName)}/${record.completedAt}-${expectation.submissionId}.json`;
 
   const blob = await put(pathname, JSON.stringify(record, null, 2), {
     access: "private",

@@ -88,21 +88,17 @@ function buildMessage(expectation: NormalizedExpectation, settings: EmailSetting
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  const safeRespondentName = escapeHtml(expectation.respondentName);
-  const safeRespondentRole = escapeHtml(expectation.respondentRole || "Não informado");
-  const safeDirectorate = escapeHtml(expectation.directorate);
+  const safeLeaderName = escapeHtml(expectation.leaderName);
   const safeClassification = escapeHtml(expectation.result.classification);
-  const subject = `${settings.subjectPrefix} ${expectation.respondentName} - ${score} (${expectation.result.classification})`;
+  const subject = `${settings.subjectPrefix} ${expectation.leaderName} - ${score} (${expectation.result.classification})`;
   const text = [
-    "Expectativa Institucional da Liderança - Sebrae / MT",
+    "Expectativa da Diretoria sobre a Liderança - Sebrae / MT",
     "",
-    `Respondente: ${expectation.respondentName}`,
-    `Cargo: ${expectation.respondentRole || "Não informado"}`,
-    `Diretoria / instância: ${expectation.directorate}`,
-    `Nível esperado médio: ${score}`,
+    `Líder: ${expectation.leaderName}`,
+    `Nível esperado médio nesta resposta: ${score}`,
     `Classificação: ${expectation.result.classification}`,
     "",
-    "Expectativa declarada por um membro da Diretoria. Consolide com as demais respostas antes de publicar a expectativa institucional.",
+    "Resposta anônima de um membro da Diretoria. Consolide com as demais antes de qualquer devolutiva.",
     "O PDF e a planilha Excel com o detalhamento das 16 dimensões estão anexados.",
   ].join("\n");
   const html = `
@@ -114,20 +110,19 @@ function buildMessage(expectation: NormalizedExpectation, settings: EmailSetting
           <div style="background:#ffffff;padding:28px;border-radius:0 0 10px 10px">
             <p style="margin:0 0 8px;color:#2a4fda;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Sebrae / MT</p>
             <h1 style="margin:0 0 18px;color:#0b2574;font-size:24px;line-height:1.2">Nova expectativa da Diretoria</h1>
-            <p style="margin:0 0 22px;color:#536172;line-height:1.6">Expectativa institucional recebida. Os relatórios completos foram gerados e seguem anexados em PDF e Excel.</p>
+            <p style="margin:0 0 22px;color:#536172;line-height:1.6">Expectativa anônima recebida. Os relatórios completos foram gerados e seguem anexados em PDF e Excel.</p>
             <div style="background:#0b2574;color:#ffffff;padding:22px;border-radius:8px">
-              <div style="font-size:12px;color:#9ff0bd;text-transform:uppercase;font-weight:700">Expectativa declarada</div>
+              <div style="font-size:12px;color:#9ff0bd;text-transform:uppercase;font-weight:700">Expectativa desta resposta</div>
               <div style="display:flex;gap:28px;align-items:flex-end;margin-top:10px">
                 <div><div style="font-size:34px;font-weight:800">${score}</div><div style="font-size:12px;color:#dbe7ff">Nível esperado médio</div></div>
                 <div><div style="font-size:20px;font-weight:800">${safeClassification}</div><div style="font-size:12px;color:#dbe7ff">Classificação</div></div>
               </div>
             </div>
             <table role="presentation" style="width:100%;margin-top:24px;border-collapse:collapse;font-size:14px">
-              <tr><td style="padding:8px 0;color:#536172;width:150px">Respondente</td><td style="padding:8px 0;font-weight:700">${safeRespondentName}</td></tr>
-              <tr><td style="padding:8px 0;color:#536172">Cargo</td><td style="padding:8px 0">${safeRespondentRole}</td></tr>
-              <tr><td style="padding:8px 0;color:#536172">Diretoria / instância</td><td style="padding:8px 0">${safeDirectorate}</td></tr>
+              <tr><td style="padding:8px 0;color:#536172;width:120px">Líder</td><td style="padding:8px 0;font-weight:700">${safeLeaderName}</td></tr>
+              <tr><td style="padding:8px 0;color:#536172">Respondente</td><td style="padding:8px 0">Anônimo</td></tr>
             </table>
-            <p style="margin:22px 0 0;color:#536172;font-size:13px;line-height:1.6">Esta é a expectativa de uma pessoa: o nível institucional só se fecha depois de consolidar toda a Diretoria.</p>
+            <p style="margin:22px 0 0;color:#536172;font-size:13px;line-height:1.6">Esta é a expectativa de uma pessoa: o nível esperado só se fecha depois de consolidar toda a Diretoria.</p>
           </div>
         </div>
       </body>

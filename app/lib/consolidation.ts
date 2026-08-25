@@ -3,6 +3,27 @@ import { dimensions, levels } from "../survey-data";
 import { classifyAverage } from "./expectation";
 import type { StoredSubmission } from "./storage";
 
+type LeaderGroup = {
+  leaderName: string;
+  submissions: StoredSubmission[];
+};
+
+function groupByLeader(submissions: StoredSubmission[]): LeaderGroup[] {
+  const groups = new Map<string, LeaderGroup>();
+
+  for (const submission of submissions) {
+    const key = submission.leaderName.trim().toLocaleLowerCase("pt-BR");
+    const group = groups.get(key);
+    if (group) {
+      group.submissions.push(submission);
+    } else {
+      groups.set(key, { leaderName: submission.leaderName.trim(), submissions: [submission] });
+    }
+  }
+
+  return [...groups.values()].sort((a, b) => a.leaderName.localeCompare(b.leaderName, "pt-BR"));
+}
+
 function average(values: number[]) {
   if (values.length === 0) return null;
   return Math.round((values.reduce((total, value) => total + value, 0) / values.length) * 100) / 100;
@@ -12,116 +33,98 @@ function expectedLevelFor(submission: StoredSubmission, dimensionNumber: number)
   return submission.answers.find((answer) => answer.dimension === dimensionNumber)?.expectedLevel ?? null;
 }
 
-function respondentLabel(submission: StoredSubmission) {
-  return submission.respondentRole
-    ? `${submission.respondentName} (${submission.respondentRole})`
-    : submission.respondentName;
-}
-
 /**
  * Monta a planilha consolidada no formato da aba "Diretoria" da Régua de
- * Maturidade: uma linha por dimensão, uma coluna por respondente e o nível
- * esperado de consenso — a média das expectativas arredondada para a régua de
- * 1 a 5. A amplitude entre o menor e o maior nível mostra onde a Diretoria
- * ainda não convergiu e precisa fechar a validação.
+ * Maturidade: uma aba por líder, com as dimensões nas linhas, a expectativa de
+ * cada respondente nas colunas e o nível esperado de consenso — a média
+ * arredondada para a régua de 1 a 5. A amplitude entre o menor e o maior nível
+ * mostra onde a Diretoria ainda não convergiu sobre aquele líder.
  */
 export function buildConsolidatedWorkbook(submissions: StoredSubmission[], generatedAt: Date): Buffer {
-  const ordered = [...submissions].sort((a, b) =>
-    a.respondentName.localeCompare(b.respondentName, "pt-BR"),
-  );
+  const groups = groupByLeader(submissions);
   const workbook = XLSX.utils.book_new();
 
-  const overallAverage = average(ordered.map((submission) => submission.average));
   const overview = XLSX.utils.aoa_to_sheet([
-    ["EXPECTATIVA INSTITUCIONAL DA LIDERANÇA | SEBRAE / MT"],
+    ["EXPECTATIVA DA DIRETORIA SOBRE A LIDERANÇA | SEBRAE / MT"],
     [],
     ["Exportado em", generatedAt],
-    ["Respostas recebidas", ordered.length],
-    ["Nível esperado médio", overallAverage],
-    ["Classificação", overallAverage === null ? "Sem respostas" : classifyAverage(overallAverage)],
+    ["Líderes com expectativa definida", groups.length],
+    ["Respostas recebidas", submissions.length],
     [],
-    ["Respondente", "Cargo", "Diretoria / instância", "Respondida em", "Nível esperado médio", "Classificação"],
-    ...ordered.map((submission) => [
-      submission.respondentName,
-      submission.respondentRole || "Não informado",
-      submission.directorate,
-      new Date(submission.completedAt),
-      submission.average,
-      submission.classification,
-    ]),
+    ["Líder", "Respondentes", "Nível esperado médio", "Classificação"],
+    ...groups.map((group) => {
+      const groupAverage = average(group.submissions.map((submission) => submission.average));
+      return [
+        group.leaderName,
+        group.submissions.length,
+        groupAverage,
+        groupAverage === null ? "Sem respostas" : classifyAverage(groupAverage),
+      ];
+    }),
   ]);
-  overview["!cols"] = [{ wch: 38 }, { wch: 34 }, { wch: 42 }, { wch: 20 }, { wch: 22 }, { wch: 18 }];
-  overview["!merges"] = [XLSX.utils.decode_range("A1:F1")];
+  overview["!cols"] = [{ wch: 38 }, { wch: 14 }, { wch: 22 }, { wch: 20 }];
+  overview["!merges"] = [XLSX.utils.decode_range("A1:D1")];
   if (overview.B3) overview.B3.z = "dd/mm/yyyy hh:mm";
-  if (overview.B5) overview.B5.z = "0.00";
-  for (let row = 9; row <= ordered.length + 8; row += 1) {
-    if (overview[`D${row}`]) overview[`D${row}`].z = "dd/mm/yyyy hh:mm";
-    if (overview[`E${row}`]) overview[`E${row}`].z = "0.00";
+  for (let row = 8; row <= groups.length + 7; row += 1) {
+    if (overview[`C${row}`]) overview[`C${row}`].z = "0.00";
   }
   XLSX.utils.book_append_sheet(workbook, overview, "Resumo");
 
-  // Layout da aba "Diretoria" da régua: dimensões nas linhas, expectativa de
-  // cada respondente nas colunas e o nível esperado consolidado ao final.
-  const respondentColumns = ordered.map(respondentLabel);
-  const expectationRows = dimensions.map((dimension, index) => {
-    const dimensionNumber = index + 1;
-    const expected = ordered.map((submission) => expectedLevelFor(submission, dimensionNumber));
-    const present = expected.filter((level): level is number => level !== null);
-    const dimensionAverage = average(present);
-    return [
-      dimensionNumber,
-      dimension.title,
-      ...expected,
-      dimensionAverage,
-      dimensionAverage === null ? null : Math.round(dimensionAverage),
-      dimensionAverage === null ? "" : levels[Math.round(dimensionAverage) - 1],
-      present.length === 0 ? null : Math.min(...present),
-      present.length === 0 ? null : Math.max(...present),
-      present.length === 0 ? null : Math.max(...present) - Math.min(...present),
+  // Uma aba por líder, no layout da aba "Diretoria" da régua.
+  for (const group of groups) {
+    const respondentColumns = group.submissions.map((_, index) => `R${index + 1}`);
+    const rows = dimensions.map((dimension, index) => {
+      const dimensionNumber = index + 1;
+      const expected = group.submissions.map((submission) => expectedLevelFor(submission, dimensionNumber));
+      const present = expected.filter((level): level is number => level !== null);
+      const dimensionAverage = average(present);
+      return [
+        dimensionNumber,
+        dimension.title,
+        ...expected,
+        dimensionAverage,
+        dimensionAverage === null ? null : Math.round(dimensionAverage),
+        dimensionAverage === null ? "" : levels[Math.round(dimensionAverage) - 1],
+        present.length === 0 ? null : Math.max(...present) - Math.min(...present),
+      ];
+    });
+
+    const sheet = XLSX.utils.aoa_to_sheet([
+      [`Líder: ${group.leaderName}`],
+      [`Respondentes: ${group.submissions.length} (respostas anônimas)`],
+      ["Nível de maturidade esperado para este líder em cada dimensão."],
+      [],
+      [
+        "Nº",
+        "Dimensão",
+        ...respondentColumns,
+        "Média",
+        "Nível esperado (1 a 5)",
+        "Classificação",
+        "Amplitude",
+      ],
+      ...rows,
+    ]);
+    sheet["!cols"] = [
+      { wch: 5 },
+      { wch: 34 },
+      ...respondentColumns.map(() => ({ wch: 6 })),
+      { wch: 10 },
+      { wch: 22 },
+      { wch: 18 },
+      { wch: 11 },
     ];
-  });
-
-  const expectation = XLSX.utils.aoa_to_sheet([
-    ["EXPECTATIVA INSTITUCIONAL (DIRETORIA)"],
-    ["Nível de maturidade esperado para a liderança do Sebrae/MT em cada dimensão."],
-    [`Respondentes: ${ordered.length}`],
-    [],
-    [
-      "Nº",
-      "Dimensão",
-      ...respondentColumns,
-      "Média",
-      "Nível esperado (1 a 5)",
-      "Classificação",
-      "Menor",
-      "Maior",
-      "Amplitude",
-    ],
-    ...expectationRows,
-  ]);
-  expectation["!cols"] = [
-    { wch: 5 },
-    { wch: 34 },
-    ...respondentColumns.map(() => ({ wch: 18 })),
-    { wch: 10 },
-    { wch: 22 },
-    { wch: 18 },
-    { wch: 8 },
-    { wch: 8 },
-    { wch: 11 },
-  ];
-  const averageColumn = XLSX.utils.encode_col(2 + respondentColumns.length);
-  for (let row = 6; row <= expectationRows.length + 5; row += 1) {
-    const cell = expectation[`${averageColumn}${row}`];
-    if (cell) cell.z = "0.00";
+    const averageColumn = XLSX.utils.encode_col(2 + respondentColumns.length);
+    for (let row = 6; row <= rows.length + 5; row += 1) {
+      const cell = sheet[`${averageColumn}${row}`];
+      if (cell) cell.z = "0.00";
+    }
+    XLSX.utils.book_append_sheet(workbook, sheet, sheetNameFor(group.leaderName, workbook));
   }
-  XLSX.utils.book_append_sheet(workbook, expectation, "Expectativa institucional");
 
-  const answerRows = ordered.flatMap((submission) =>
+  const answerRows = submissions.flatMap((submission) =>
     submission.answers.map((answer) => [
-      submission.respondentName,
-      submission.respondentRole || "Não informado",
-      submission.directorate,
+      submission.leaderName,
       submission.submissionId,
       new Date(submission.completedAt),
       answer.dimension,
@@ -133,9 +136,7 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
   );
   const detail = XLSX.utils.aoa_to_sheet([
     [
-      "Respondente",
-      "Cargo",
-      "Diretoria / instância",
+      "Líder",
       "ID da resposta",
       "Respondida em",
       "Nº",
@@ -148,8 +149,6 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
   ]);
   detail["!cols"] = [
     { wch: 30 },
-    { wch: 30 },
-    { wch: 42 },
     { wch: 38 },
     { wch: 20 },
     { wch: 5 },
@@ -158,9 +157,9 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
     { wch: 16 },
     { wch: 90 },
   ];
-  detail["!autofilter"] = { ref: `A1:J${answerRows.length + 1}` };
+  detail["!autofilter"] = { ref: `A1:H${answerRows.length + 1}` };
   for (let row = 2; row <= answerRows.length + 1; row += 1) {
-    if (detail[`E${row}`]) detail[`E${row}`].z = "dd/mm/yyyy hh:mm";
+    if (detail[`C${row}`]) detail[`C${row}`].z = "dd/mm/yyyy hh:mm";
   }
   XLSX.utils.book_append_sheet(workbook, detail, "Respostas");
 
@@ -179,10 +178,23 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
   XLSX.utils.book_append_sheet(workbook, scaleSheet, "Escala");
 
   workbook.Props = {
-    Title: "Expectativa institucional da liderança - consolidado",
+    Title: "Expectativa da Diretoria sobre a liderança - consolidado",
     Author: "Sebrae / MT",
     CreatedDate: generatedAt,
   };
 
   return Buffer.from(XLSX.write(workbook, { type: "buffer", bookType: "xlsx", compression: true }));
+}
+
+// Nomes de aba no Excel: até 31 caracteres, sem : \ / ? * [ ] e sem repetição.
+function sheetNameFor(leaderName: string, workbook: XLSX.WorkBook) {
+  const base = leaderName.replace(/[:\\/?*[\]]/g, " ").trim().slice(0, 31) || "Lider";
+  if (!workbook.SheetNames.includes(base)) return base;
+
+  for (let suffix = 2; suffix < 100; suffix += 1) {
+    const candidate = `${base.slice(0, 31 - String(suffix).length - 1)} ${suffix}`;
+    if (!workbook.SheetNames.includes(candidate)) return candidate;
+  }
+
+  return base.slice(0, 28) + String(Math.floor(workbook.SheetNames.length)).padStart(3, "0");
 }
