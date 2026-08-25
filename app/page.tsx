@@ -3,13 +3,20 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { dimensions, levels } from "./survey-data";
-import { ASSESSOR_LAST_DIMENSION, dimensionCountFor, isAssessorLeader, isKnownLeader } from "./leaders";
+import { dimensionCountFor, isKnownLeader } from "./leaders";
 import LeaderCombobox from "./leader-combobox";
 
 const STORAGE_KEY = "sebraeExpectativaDiretoria";
+const COMMENT_MAX_LENGTH = 2_000;
 
-/** Nível esperado (1 a 5) escolhido em cada dimensão, indexado pelo número da dimensão. */
-type Expectations = Record<string, number>;
+type Expectation = {
+  /** Nível de maturidade esperado, de 1 a 5. */
+  expectedLevel: number;
+  comment: string;
+};
+
+/** Expectativa de cada dimensão, indexada pelo número da dimensão. */
+type Expectations = Record<string, Expectation>;
 
 type SavedDraft = {
   leaderName: string;
@@ -89,7 +96,7 @@ export default function ExpectationPage() {
   const activeDimension = current >= 1 && current <= dimensionCount ? activeDimensions[current - 1] : null;
 
   const completedAnswers = useMemo(
-    () => activeDimensions.filter((_, index) => expectations[String(index + 1)]).length,
+    () => activeDimensions.filter((_, index) => expectations[String(index + 1)]?.expectedLevel).length,
     [activeDimensions, expectations],
   );
 
@@ -110,7 +117,7 @@ export default function ExpectationPage() {
       if (!valid) return;
     }
 
-    if (current >= 1 && current <= dimensionCount && !expectations[String(current)]) {
+    if (current >= 1 && current <= dimensionCount && !expectations[String(current)]?.expectedLevel) {
       setAnswerError(true);
       return;
     }
@@ -138,7 +145,8 @@ export default function ExpectationPage() {
           // para uma assessoria pode ter deixado respostas de sobra no rascunho.
           answers: activeDimensions.map((_, index) => ({
             dimension: index + 1,
-            expectedLevel: expectations[String(index + 1)],
+            expectedLevel: expectations[String(index + 1)]?.expectedLevel,
+            comment: expectations[String(index + 1)]?.comment ?? "",
           })),
         }),
       });
@@ -164,8 +172,20 @@ export default function ExpectationPage() {
   function setExpectedLevel(expectedLevel: number) {
     submissionIdRef.current = null;
     setSubmitError("");
-    setExpectations((previous) => ({ ...previous, [String(current)]: expectedLevel }));
+    setExpectations((previous) => ({
+      ...previous,
+      [String(current)]: { expectedLevel, comment: previous[String(current)]?.comment ?? "" },
+    }));
     setAnswerError(false);
+  }
+
+  function setComment(comment: string) {
+    submissionIdRef.current = null;
+    setSubmitError("");
+    setExpectations((previous) => ({
+      ...previous,
+      [String(current)]: { expectedLevel: previous[String(current)]?.expectedLevel ?? 0, comment },
+    }));
   }
 
   return (
@@ -254,15 +274,6 @@ export default function ExpectationPage() {
                   Esta pesquisa é anônima: não pedimos o seu nome nem o seu e-mail. Suas respostas serão
                   consolidadas com as dos demais membros da Diretoria e apresentadas apenas de forma agregada.
                 </p>
-                {isAssessorLeader(leaderName) && (
-                  <p className="expectation-note">
-                    <span className="note-icon" aria-hidden="true">!</span>
-                    <span>
-                      Assessorias não lideram equipe: o questionário vai até a dimensão {dimensionCount} (
-                      <b>{ASSESSOR_LAST_DIMENSION}</b>) e não passa pelas dimensões de liderança de pessoas.
-                    </span>
-                  </p>
-                )}
                 <p className={`error ${identityError ? "show" : ""}`} role="alert">
                   Selecione o líder para continuar.
                 </p>
@@ -288,7 +299,7 @@ export default function ExpectationPage() {
                         type="radio"
                         name={`d${current}`}
                         value={index + 1}
-                        checked={expectations[String(current)] === index + 1}
+                        checked={expectations[String(current)]?.expectedLevel === index + 1}
                         onChange={() => setExpectedLevel(index + 1)}
                       />
                       <span className="option-copy">{option}</span>
@@ -296,14 +307,24 @@ export default function ExpectationPage() {
                     </label>
                   ))}
                 </div>
-                <p className="expectation-note">
-                  <span className="note-icon" aria-hidden="true">!</span>
-                  <span>
-                    Responda pela <b>expectativa</b>, não pela prática observada. Os níveis crescem de{" "}
-                    <b>{levels[0]}</b> a <b>{levels[levels.length - 1]}</b> e descrevem graus de maturidade
-                    comportamental — o mais alto nem sempre é o exigível de toda a liderança.
-                  </span>
-                </p>
+                <div className="evidence">
+                  <label htmlFor={`c${current}`}>
+                    Comentário <span className="optional">(opcional)</span>
+                  </label>
+                  <textarea
+                    id={`c${current}`}
+                    name={`c${current}`}
+                    placeholder="Descreva o que justifica esse nível de expectativa para este líder."
+                    maxLength={COMMENT_MAX_LENGTH}
+                    value={expectations[String(current)]?.comment ?? ""}
+                    onChange={(event) => setComment(event.target.value)}
+                  />
+                  <small>
+                    Evite informações sensíveis ou nomes de terceiros.{" "}
+                    {expectations[String(current)]?.comment?.length ?? 0}
+                    /{COMMENT_MAX_LENGTH.toLocaleString("pt-BR")}
+                  </small>
+                </div>
                 <p className={`error ${answerError ? "show" : ""}`} role="alert">
                   Selecione uma alternativa para continuar.
                 </p>
@@ -324,7 +345,7 @@ export default function ExpectationPage() {
                     </div>
                   </div>
                   {activeDimensions.map((dimension, index) => {
-                    const expectedLevel = expectations[String(index + 1)];
+                    const expectedLevel = expectations[String(index + 1)]?.expectedLevel;
                     return (
                       <div className="review-item" key={dimension.title}>
                         <span className="review-number" aria-hidden="true">{index + 1}</span>

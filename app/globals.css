@@ -344,14 +344,16 @@ h1 {
   font-size: 0.94rem;
 }
 
-.field label {
+.field label,
+.evidence label {
   display: block;
   margin-bottom: 9px;
   color: var(--ink);
   font-weight: 700;
 }
 
-.field input {
+.field input,
+.evidence textarea {
   width: 100%;
   padding: 14px 15px;
   color: var(--ink);
@@ -458,12 +460,14 @@ h1 {
   font-size: 0.9rem;
 }
 
-.field input::placeholder {
+.field input::placeholder,
+.evidence textarea::placeholder {
   color: #7a8796;
 }
 
 .field input:focus,
-.combobox input:focus {
+.combobox input:focus,
+.evidence textarea:focus {
   border-color: var(--sebrae-blue);
   box-shadow: 0 0 0 4px rgb(42 79 218 / 12%);
 }
@@ -593,35 +597,27 @@ h1 {
   transform: scale(1);
 }
 
-.expectation-note {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
+.evidence {
   margin-top: 24px;
-  padding: 18px 20px;
-  border-left: 4px solid var(--sebrae-blue);
+  padding: 20px;
   border-radius: 8px;
   background: var(--off-white);
+}
+
+.optional {
   color: var(--muted);
-  font-size: 0.92rem;
-  line-height: 1.55;
+  font-weight: 400;
 }
 
-.expectation-note b {
-  color: var(--atlantic);
+.evidence small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
 }
 
-.expectation-note .note-icon {
-  flex: 0 0 auto;
-  display: grid;
-  width: 26px;
-  height: 26px;
-  place-items: center;
-  color: var(--white);
-  border-radius: 6px;
-  background: var(--sebrae-blue);
-  font-size: 0.8rem;
-  font-weight: 900;
+.evidence textarea {
+  min-height: 105px;
+  resize: vertical;
 }
 
 .error {
@@ -861,7 +857,7 @@ h1 {
     margin-top: 1px;
   }
 
-  .expectation-note {
+  .evidence {
     padding: 16px;
   }
 

@@ -1,10 +1,14 @@
 import { dimensions, levels } from "../survey-data";
 import { dimensionCountFor, isKnownLeader } from "../leaders";
 
+export const COMMENT_MAX_LENGTH = 2_000;
+
 export type ExpectationAnswerInput = {
   dimension: number;
   /** Nível de maturidade esperado, de 1 a 5. */
   expectedLevel: number;
+  /** Justificativa opcional do nível escolhido. */
+  comment: string;
 };
 
 export type ExpectationSubmissionInput = {
@@ -102,6 +106,7 @@ export function validateExpectationSubmission(payload: unknown): ValidationResul
     const answer = rawAnswer as Partial<ExpectationAnswerInput>;
     const dimension = Number(answer.dimension);
     const expectedLevel = Number(answer.expectedLevel);
+    const comment = typeof answer.comment === "string" ? answer.comment.trim() : "";
 
     if (!Number.isInteger(dimension) || dimension < 1 || dimension > expectedCount) {
       return { ok: false, message: "Uma das dimensões informadas é inválida." };
@@ -115,8 +120,15 @@ export function validateExpectationSubmission(payload: unknown): ValidationResul
       return { ok: false, message: `O nível esperado da dimensão ${dimension} deve estar entre 1 e 5.` };
     }
 
+    if (comment.length > COMMENT_MAX_LENGTH) {
+      return {
+        ok: false,
+        message: `O comentário da dimensão ${dimension} excede ${COMMENT_MAX_LENGTH.toLocaleString("pt-BR")} caracteres.`,
+      };
+    }
+
     seenDimensions.add(dimension);
-    normalizedAnswers.push({ dimension, expectedLevel });
+    normalizedAnswers.push({ dimension, expectedLevel, comment });
   }
 
   normalizedAnswers.sort((a, b) => a.dimension - b.dimension);

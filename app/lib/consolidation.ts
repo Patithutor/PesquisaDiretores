@@ -144,6 +144,7 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
       answer.expectedLevel,
       answer.levelName,
       answer.expectedOption,
+      answer.comment || "",
     ]),
   );
   const detail = XLSX.utils.aoa_to_sheet([
@@ -156,6 +157,7 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
       "Nível esperado",
       "Classificação",
       "Descrição do nível esperado",
+      "Comentário",
     ],
     ...answerRows,
   ]);
@@ -168,8 +170,9 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
     { wch: 15 },
     { wch: 16 },
     { wch: 90 },
+    { wch: 60 },
   ];
-  detail["!autofilter"] = { ref: `A1:H${answerRows.length + 1}` };
+  detail["!autofilter"] = { ref: `A1:I${answerRows.length + 1}` };
   for (let row = 2; row <= answerRows.length + 1; row += 1) {
     if (detail[`C${row}`]) detail[`C${row}`].z = "dd/mm/yyyy hh:mm";
   }

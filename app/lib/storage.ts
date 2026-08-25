@@ -11,6 +11,7 @@ export type StoredAnswer = {
   expectedLevel: number;
   levelName: string;
   expectedOption: string;
+  comment: string;
 };
 
 export type StoredSubmission = {
@@ -50,6 +51,7 @@ function toStoredSubmission(expectation: NormalizedExpectation): StoredSubmissio
       expectedLevel: answer.expectedLevel,
       levelName: answer.levelName,
       expectedOption: answer.expectedOption,
+      comment: answer.comment,
     })),
   };
 }

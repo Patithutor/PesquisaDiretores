@@ -183,15 +183,16 @@ export function generateSpreadsheetReport(expectation: NormalizedExpectation): B
     answer.expectedLevel,
     answer.levelName,
     answer.expectedOption,
+    answer.comment || "Não informado",
   ]);
 
   const responses = XLSX.utils.aoa_to_sheet([
-    ["Nº", "Dimensão", "Nível esperado", "Classificação", "Descrição do nível esperado"],
+    ["Nº", "Dimensão", "Nível esperado", "Classificação", "Descrição do nível esperado", "Comentário"],
     ...answerRows,
   ]);
-  responses["!cols"] = [{ wch: 6 }, { wch: 34 }, { wch: 15 }, { wch: 20 }, { wch: 92 }];
+  responses["!cols"] = [{ wch: 6 }, { wch: 34 }, { wch: 15 }, { wch: 20 }, { wch: 92 }, { wch: 55 }];
   responses["!rows"] = [{ hpt: 24 }, ...expectation.answers.map(() => ({ hpt: 58 }))];
-  responses["!autofilter"] = { ref: `A1:E${expectation.answers.length + 1}` };
+  responses["!autofilter"] = { ref: `A1:F${expectation.answers.length + 1}` };
   for (let row = 2; row <= expectation.answers.length + 1; row += 1) {
     responses[`C${row}`].z = "0";
   }
@@ -330,9 +331,10 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
 
   for (const answer of expectation.answers) {
     const optionLines = wrapText(answer.expectedOption, regular, 9.2, pageWidth - 132);
-    const cardHeight = 83 + optionLines.length * 12;
+    const commentLines = wrapText(answer.comment || "Não informado.", regular, 8.7, pageWidth - 132);
+    const cardHeight = 83 + optionLines.length * 12 + commentLines.length * 11;
 
-    if (y - cardHeight < 54 || cardsOnPage >= 5) {
+    if (y - cardHeight < 54 || cardsOnPage >= 4) {
       page = document.addPage(PageSizes.A4);
       drawHeader(page, bold, logoPath, "DETALHAMENTO DAS DIMENSÕES");
       y = pageHeight - 116;
@@ -364,13 +366,23 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
     });
 
     page.drawText("NÍVEL ESPERADO", { x: 58, y: y - 54, size: 7.2, font: bold, color: BRAND.blue });
-    drawTextLines(page, optionLines, {
+    let contentY = drawTextLines(page, optionLines, {
       x: 58,
       y: y - 69,
       font: regular,
       size: 9.2,
       lineHeight: 12,
       color: BRAND.ink,
+    });
+    contentY -= 4;
+    page.drawText("COMENTÁRIO", { x: 58, y: contentY, size: 7.2, font: bold, color: BRAND.blue });
+    drawTextLines(page, commentLines, {
+      x: 58,
+      y: contentY - 14,
+      font: regular,
+      size: 8.7,
+      lineHeight: 11,
+      color: BRAND.muted,
     });
 
     y -= cardHeight + 12;

@@ -3,8 +3,9 @@
 Questionário da **Diretoria** da Régua de Maturidade da Liderança do Sebrae / MT.
 Para cada pessoa do lotacionograma, os membros da Diretoria definem, nas 16
 dimensões de liderança, o nível de maturidade que a instituição deve esperar
-dela — em escala de 1 a 5 com âncoras comportamentais. Assessorias respondem
-uma versão mais curta, com 9 dimensões (veja abaixo).
+dela — em escala de 1 a 5 com âncoras comportamentais. Cada dimensão tem um
+comentário opcional. Assessorias respondem uma versão mais curta, com 9
+dimensões (veja abaixo).
 
 As dimensões e as âncoras vêm da aba **Diretoria** da planilha
 `Regua_Maturidade_SebraeMT_BASE.xlsx` e estão em `app/survey-data.ts`.
@@ -21,7 +22,7 @@ com o questionário na visão da Diretoria. Os 16 títulos e os 5 textos-âncora
 | Pergunta | Como o gestor **pratica** cada dimensão hoje | Que nível se deve **esperar** daquele líder |
 | Primeira etapa | Seleção do líder avaliado | Igual: seleção do líder |
 | Respondente | Anônimo | Anônimo |
-| Campo aberto | Comentário opcional por dimensão | Não há — a aba Diretoria não tem |
+| Campo aberto | Comentário opcional por dimensão | Igual: comentário opcional |
 | Consolidação | Média da equipe por líder | Nível esperado de consenso por dimensão |
 
 As duas pesquisas se consolidam pela mesma chave — o nome do líder no
@@ -81,10 +82,10 @@ Assessorias não lideram equipe, então o questionário delas termina na dimens�
 pessoas e não se aplicam.
 
 A regra vive em `dimensionCountFor()` (`app/leaders.ts`) e vale para toda a
-aplicação: a primeira tela avisa quem responde, o número de etapas e a barra de
-progresso se ajustam, e o servidor exige exatamente 9 níveis — nem mais, nem
-menos — quando o líder escolhido é uma assessoria. Nos relatórios e no
-consolidado aparecem só as dimensões respondidas.
+aplicação: o número de etapas e a barra de progresso se ajustam, e o servidor
+exige exatamente 9 níveis — nem mais, nem menos — quando o líder escolhido é
+uma assessoria. Nos relatórios e no consolidado aparecem só as dimensões
+respondidas.
 
 A busca é pelo **título** da dimensão, não pela posição: se a ordem da régua
 mudar, o corte continua em "Compromisso com resultados". Se esse título sumir
@@ -93,8 +94,8 @@ da régua, o questionário fica inteiro em vez de encurtar no lugar errado.
 ## Armazenamento das respostas
 
 Cada resposta é gravada como um JSON no **Vercel Blob**, em
-`expectativas/<lider>/<data>-<id>.json`. O registro guarda apenas o líder e os
-níveis esperados das 16 dimensões — nunca IP ou qualquer identificação de quem
+`expectativas/<lider>/<data>-<id>.json`. O registro guarda apenas o líder, os
+níveis esperados e os comentários — nunca IP ou qualquer identificação de quem
 respondeu.
 
 Crie o Blob store no painel do Vercel com **acesso privado** (o modo de acesso
@@ -118,7 +119,8 @@ depois da gravação, a resposta é preservada e o envio é confirmado normalmen
   consenso** (média arredondada para a régua de 1 a 5) e a amplitude entre o
   menor e o maior nível, que mostra onde a Diretoria ainda não convergiu sobre
   aquele líder;
-- **Respostas** — formato longo, uma linha por dimensão respondida;
+- **Respostas** — formato longo, uma linha por dimensão respondida, com os
+  comentários;
 - **Escala** — níveis e faixas de classificação.
 
 O token também pode ir no cabeçalho `Authorization: Bearer <token>`. Sem
