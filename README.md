@@ -52,10 +52,12 @@ fechar o consenso da Diretoria depois.
 
 O formulário pede nome completo (obrigatório), diretoria ou instância
 (obrigatório) e cargo (opcional). A lista de instâncias está em
-`app/directorates.ts`, gerada a partir das áreas do Lotacionograma simplificado
-do Sebrae/MT (05.08.2026), e também é validada no servidor. Atualize esse arquivo
-quando a estrutura mudar — um rascunho salvo no navegador que aponte para uma
-instância removida tem o campo limpo automaticamente, em vez de travar no envio.
+`app/directorates.ts`: são as 5 unidades organizacionais do Lotacionograma
+simplificado do Sebrae/MT (05.08.2026), na ordem do lotacionograma — a mesma em
+que a PesquisaColaboradores agrupa os líderes. A escolha também é validada no
+servidor. Atualize esse arquivo quando a estrutura mudar — um rascunho salvo no
+navegador que aponte para uma instância removida tem o campo limpo
+automaticamente, em vez de travar no envio.
 
 ## Armazenamento das respostas
 
