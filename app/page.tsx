@@ -250,11 +250,12 @@ export default function ExpectationPage() {
               <section>
                 <p className="eyebrow">Etapa inicial</p>
                 <h1>Que nível de maturidade esperamos deste líder?</h1>
+                <h2 className="section-title">Como responder</h2>
                 <p className="lead">
-                  Em cada uma das {dimensionCount} dimensões, leia as 5 descrições e escolha a que representa o
-                  nível que o Sebrae/MT deve esperar deste líder. Não é uma avaliação da prática de hoje: é a régua
-                  que a Diretoria assume como expectativa. A escala mede graus crescentes de maturidade
-                  comportamental, não bom ou ruim.
+                  Em cada uma das dimensões, leia atentamente as 5 descrições e selecione aquela que melhor
+                  representa o nível de maturidade do avaliado, considerando sua atuação e os comportamentos
+                  demonstrados nos últimos 6 meses. Para responder, leve em conta a frequência, a consistência e a
+                  forma como esses comportamentos se manifestaram no período.
                 </p>
                 <div className="fields fields-single">
                   <div className="field">
