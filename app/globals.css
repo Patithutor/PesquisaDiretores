@@ -434,10 +434,6 @@ h1 {
   background: rgb(42 79 218 / 8%);
 }
 
-.combobox-option[aria-selected="true"] b {
-  color: var(--sebrae-blue);
-}
-
 .combobox-option b {
   color: var(--ink);
   font-weight: 700;
