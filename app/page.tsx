@@ -205,7 +205,7 @@ export default function SurveyPage() {
               <span className="brand-state">MT</span>
             </a>
             <div className="brand-product">
-              <b>Avaliação da Diretoria sobre a Liderança</b>
+              <b>Avaliação sobre as lideranças e assessores</b>
               <span>Régua de maturidade da liderança</span>
             </div>
           </div>

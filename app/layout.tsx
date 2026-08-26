@@ -10,7 +10,7 @@ const figtree = Figtree({
 });
 
 export const metadata: Metadata = {
-  title: "Avaliação da Diretoria sobre a Liderança",
+  title: "Avaliação sobre as lideranças e assessores",
   description: "Régua de maturidade da liderança do Sebrae / MT — questionário da Diretoria",
 };
 

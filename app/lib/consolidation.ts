@@ -45,7 +45,7 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
   const workbook = XLSX.utils.book_new();
 
   const overview = XLSX.utils.aoa_to_sheet([
-    ["AVALIAÇÃO DA DIRETORIA SOBRE A LIDERANÇA | SEBRAE / MT"],
+    ["AVALIAÇÃO SOBRE AS LIDERANÇAS E ASSESSORES | SEBRAE / MT"],
     [],
     ["Exportado em", generatedAt],
     ["Avaliados", groups.length],
@@ -193,7 +193,7 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
   XLSX.utils.book_append_sheet(workbook, scaleSheet, "Escala");
 
   workbook.Props = {
-    Title: "Avaliação da Diretoria sobre a liderança - consolidado",
+    Title: "Avaliação sobre as lideranças e assessores - consolidado",
     Author: "Sebrae / MT",
     CreatedDate: generatedAt,
   };

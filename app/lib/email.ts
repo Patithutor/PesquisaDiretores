@@ -92,7 +92,7 @@ function buildMessage(assessment: NormalizedAssessment, settings: EmailSettings)
   const safeClassification = escapeHtml(assessment.result.classification);
   const subject = `${settings.subjectPrefix} ${assessment.leaderName} - ${score} (${assessment.result.classification})`;
   const text = [
-    "Avaliação da Diretoria sobre a Liderança - Sebrae / MT",
+    "Avaliação sobre as lideranças e assessores - Sebrae / MT",
     "",
     `Avaliado: ${assessment.leaderName}`,
     `Nota média desta resposta: ${score}`,

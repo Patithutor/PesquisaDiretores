@@ -1,4 +1,4 @@
-# Avaliação da Diretoria sobre a Liderança — Sebrae / MT
+# Avaliação sobre as lideranças e assessores — Sebrae / MT
 
 Questionário da **Diretoria** da Régua de Maturidade da Liderança do Sebrae / MT.
 Para cada pessoa do lotacionograma, os membros da Diretoria registram, nas 16

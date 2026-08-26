@@ -200,7 +200,7 @@ export function generateSpreadsheetReport(assessment: NormalizedAssessment): Buf
   const classificationFormula =
     'IF(B8<1.8,"Inércia",IF(B8<2.6,"Acreditar",IF(B8<3.4,"Praticar",IF(B8<4.2,"Melhorar","Compartilhar"))))';
   const summary = XLSX.utils.aoa_to_sheet([
-    ["AVALIAÇÃO DA DIRETORIA SOBRE A LIDERANÇA | SEBRAE / MT"],
+    ["AVALIAÇÃO SOBRE AS LIDERANÇAS E ASSESSORES | SEBRAE / MT"],
     [],
     ["Avaliado", assessment.leaderName],
     ["Respondente", "Anônimo"],
@@ -232,7 +232,7 @@ export function generateSpreadsheetReport(assessment: NormalizedAssessment): Buf
   XLSX.utils.book_append_sheet(workbook, summary, "Resumo");
   XLSX.utils.book_append_sheet(workbook, responses, "Respostas");
   workbook.Props = {
-    Title: "Avaliação da Diretoria sobre a liderança",
+    Title: "Avaliação sobre as lideranças e assessores",
     Subject: `Avaliação de ${assessment.leaderName}`,
     Author: "Sebrae / MT",
     CreatedDate: assessment.completedAt,
@@ -251,10 +251,17 @@ export async function generatePdfReport(assessment: NormalizedAssessment): Promi
   const [pageWidth, pageHeight] = PageSizes.A4;
 
   const cover = document.addPage(PageSizes.A4);
-  drawHeader(cover, bold, logoPath, "AVALIAÇÃO DA DIRETORIA");
+  drawHeader(cover, bold, logoPath, "AVALIAÇÃO SOBRE AS LIDERANÇAS E ASSESSORES");
 
   cover.drawText("Régua de maturidade da liderança", { x: 42, y: 686, size: 10, font: bold, color: BRAND.blue });
-  cover.drawText("Avaliação da Diretoria", { x: 42, y: 646, size: 28, font: bold, color: BRAND.ink });
+  // O título ocupa uma linha só: reduz o corpo até caber na largura útil da
+  // capa, em vez de vazar para fora da margem.
+  const coverTitle = "Avaliação sobre as lideranças e assessores";
+  let coverTitleSize = 28;
+  while (coverTitleSize > 12 && bold.widthOfTextAtSize(coverTitle, coverTitleSize) > pageWidth - 84) {
+    coverTitleSize -= 0.5;
+  }
+  cover.drawText(coverTitle, { x: 42, y: 646, size: coverTitleSize, font: bold, color: BRAND.ink });
   const introLines = wrapText(
     `Este relatório apresenta a resposta anônima de um membro da Diretoria sobre as ${assessment.answers.length} dimensões de liderança que se aplicam a esta pessoa. Consolide com as respostas dos demais antes de qualquer devolutiva.`,
     regular,
@@ -392,7 +399,7 @@ export async function generatePdfReport(assessment: NormalizedAssessment): Promi
   const pages = document.getPages();
   pages.forEach((currentPage, index) => drawFooter(currentPage, regular, index + 1, pages.length));
 
-  document.setTitle(`Avaliação da Diretoria - ${assessment.leaderName}`);
+  document.setTitle(`Avaliação sobre as lideranças e assessores - ${assessment.leaderName}`);
   document.setAuthor("Sebrae / MT");
   document.setSubject(
     `Resultado: ${assessment.result.classification} (${formatScore(assessment.result.average)})`,
