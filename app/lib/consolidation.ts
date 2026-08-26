@@ -1,6 +1,6 @@
 import * as XLSX from "xlsx";
 import { dimensions, levels } from "../survey-data";
-import { classifyAverage } from "./expectation";
+import { classifyAverage } from "./assessment";
 import type { StoredSubmission } from "./storage";
 
 type LeaderGroup = {
@@ -29,29 +29,29 @@ function average(values: number[]) {
   return Math.round((values.reduce((total, value) => total + value, 0) / values.length) * 100) / 100;
 }
 
-function expectedLevelFor(submission: StoredSubmission, dimensionNumber: number) {
-  return submission.answers.find((answer) => answer.dimension === dimensionNumber)?.expectedLevel ?? null;
+function scoreFor(submission: StoredSubmission, dimensionNumber: number) {
+  return submission.answers.find((answer) => answer.dimension === dimensionNumber)?.score ?? null;
 }
 
 /**
  * Monta a planilha consolidada no formato da aba "Diretoria" da Régua de
- * Maturidade: uma aba por líder, com as dimensões nas linhas, a expectativa de
- * cada respondente nas colunas e o nível esperado de consenso — a média
- * arredondada para a régua de 1 a 5. A amplitude entre o menor e o maior nível
- * mostra onde a Diretoria ainda não convergiu sobre aquele líder.
+ * Maturidade: uma aba por avaliado, com as dimensões nas linhas, a nota de
+ * cada respondente nas colunas e o nível de consenso — a média arredondada
+ * para a régua de 1 a 5. A amplitude entre a menor e a maior nota mostra onde
+ * a Diretoria ainda não convergiu sobre aquela pessoa.
  */
 export function buildConsolidatedWorkbook(submissions: StoredSubmission[], generatedAt: Date): Buffer {
   const groups = groupByLeader(submissions);
   const workbook = XLSX.utils.book_new();
 
   const overview = XLSX.utils.aoa_to_sheet([
-    ["EXPECTATIVA DA DIRETORIA SOBRE A LIDERANÇA | SEBRAE / MT"],
+    ["AVALIAÇÃO DA DIRETORIA SOBRE A LIDERANÇA | SEBRAE / MT"],
     [],
     ["Exportado em", generatedAt],
-    ["Avaliados com expectativa definida", groups.length],
+    ["Avaliados", groups.length],
     ["Respostas recebidas", submissions.length],
     [],
-    ["Avaliado", "Respondentes", "Dimensões", "Nível esperado médio", "Classificação"],
+    ["Avaliado", "Respondentes", "Dimensões", "Nota média", "Classificação"],
     ...groups.map((group) => {
       const groupAverage = average(group.submissions.map((submission) => submission.average));
       return [
@@ -83,7 +83,7 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
     );
     const rows = dimensions.slice(0, answeredDimensions).map((dimension, index) => {
       const dimensionNumber = index + 1;
-      const expected = group.submissions.map((submission) => expectedLevelFor(submission, dimensionNumber));
+      const expected = group.submissions.map((submission) => scoreFor(submission, dimensionNumber));
       const present = expected.filter((level): level is number => level !== null);
       const dimensionAverage = average(present);
       return [
@@ -102,8 +102,8 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
       [`Respondentes: ${group.submissions.length} (respostas anônimas)`],
       [
         answeredDimensions < dimensions.length
-          ? `Nível esperado nas ${answeredDimensions} dimensões que se aplicam a este líder.`
-          : "Nível de maturidade esperado para este líder em cada dimensão.",
+          ? `Nível de maturidade observado nas ${answeredDimensions} dimensões que se aplicam a esta pessoa.`
+          : "Nível de maturidade observado em cada dimensão.",
       ],
       [],
       [
@@ -111,7 +111,7 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
         "Dimensão",
         ...respondentColumns,
         "Média",
-        "Nível esperado (1 a 5)",
+        "Nível de consenso (1 a 5)",
         "Classificação",
         "Amplitude",
       ],
@@ -141,9 +141,9 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
       new Date(submission.completedAt),
       answer.dimension,
       answer.title,
-      answer.expectedLevel,
-      answer.levelName,
-      answer.expectedOption,
+      answer.score,
+      answer.level,
+      answer.selectedOption,
       answer.comment || "",
     ]),
   );
@@ -154,9 +154,9 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
       "Respondida em",
       "Nº",
       "Dimensão",
-      "Nível esperado",
-      "Classificação",
-      "Descrição do nível esperado",
+      "Nota",
+      "Nível",
+      "Resposta escolhida",
       "Comentário",
     ],
     ...answerRows,
@@ -193,7 +193,7 @@ export function buildConsolidatedWorkbook(submissions: StoredSubmission[], gener
   XLSX.utils.book_append_sheet(workbook, scaleSheet, "Escala");
 
   workbook.Props = {
-    Title: "Expectativa da Diretoria sobre a liderança - consolidado",
+    Title: "Avaliação da Diretoria sobre a liderança - consolidado",
     Author: "Sebrae / MT",
     CreatedDate: generatedAt,
   };

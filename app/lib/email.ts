@@ -1,7 +1,7 @@
 import "server-only";
 
 import nodemailer from "nodemailer";
-import type { NormalizedExpectation } from "./expectation";
+import type { NormalizedAssessment } from "./assessment";
 import type { GeneratedReports, ReportAttachment } from "./reports";
 
 type EmailProvider = "smtp" | "resend";
@@ -57,7 +57,7 @@ function getEmailSettings(): EmailSettings {
       provider: rawProvider,
       from: process.env.EMAIL_FROM?.trim() || "Sebrae / MT <no-reply@example.com>",
       recipients: [],
-      subjectPrefix: process.env.EMAIL_SUBJECT_PREFIX?.trim() || "[Expectativa Diretoria Sebrae / MT]",
+      subjectPrefix: process.env.EMAIL_SUBJECT_PREFIX?.trim() || "[Avaliação Diretoria Sebrae / MT]",
     };
   }
 
@@ -66,7 +66,7 @@ function getEmailSettings(): EmailSettings {
     provider: rawProvider,
     from: requiredEnv("EMAIL_FROM"),
     recipients: parseRecipients(process.env.EMAIL_RECIPIENTS),
-    subjectPrefix: process.env.EMAIL_SUBJECT_PREFIX?.trim() || "[Expectativa Diretoria Sebrae / MT]",
+    subjectPrefix: process.env.EMAIL_SUBJECT_PREFIX?.trim() || "[Avaliação Diretoria Sebrae / MT]",
   };
 }
 
@@ -83,23 +83,23 @@ function escapeHtml(value: string) {
   });
 }
 
-function buildMessage(expectation: NormalizedExpectation, settings: EmailSettings) {
-  const score = expectation.result.average.toLocaleString("pt-BR", {
+function buildMessage(assessment: NormalizedAssessment, settings: EmailSettings) {
+  const score = assessment.result.average.toLocaleString("pt-BR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  const safeLeaderName = escapeHtml(expectation.leaderName);
-  const safeClassification = escapeHtml(expectation.result.classification);
-  const subject = `${settings.subjectPrefix} ${expectation.leaderName} - ${score} (${expectation.result.classification})`;
+  const safeLeaderName = escapeHtml(assessment.leaderName);
+  const safeClassification = escapeHtml(assessment.result.classification);
+  const subject = `${settings.subjectPrefix} ${assessment.leaderName} - ${score} (${assessment.result.classification})`;
   const text = [
-    "Expectativa da Diretoria sobre a Liderança - Sebrae / MT",
+    "Avaliação da Diretoria sobre a Liderança - Sebrae / MT",
     "",
-    `Avaliado: ${expectation.leaderName}`,
-    `Nível esperado médio nesta resposta: ${score}`,
-    `Classificação: ${expectation.result.classification}`,
+    `Avaliado: ${assessment.leaderName}`,
+    `Nota média desta resposta: ${score}`,
+    `Classificação: ${assessment.result.classification}`,
     "",
     "Resposta anônima de um membro da Diretoria. Consolide com as demais antes de qualquer devolutiva.",
-    `O PDF e a planilha Excel com o detalhamento das ${expectation.answers.length} dimensões estão anexados.`,
+    `O PDF e a planilha Excel com o detalhamento das ${assessment.answers.length} dimensões estão anexados.`,
   ].join("\n");
   const html = `
     <!doctype html>
@@ -109,12 +109,12 @@ function buildMessage(expectation: NormalizedExpectation, settings: EmailSetting
           <div style="height:8px;background:linear-gradient(90deg,#2a4fda 0 64%,#65b7fb 64% 82%,#9ff0bd 82%)"></div>
           <div style="background:#ffffff;padding:28px;border-radius:0 0 10px 10px">
             <p style="margin:0 0 8px;color:#2a4fda;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em">Sebrae / MT</p>
-            <h1 style="margin:0 0 18px;color:#0b2574;font-size:24px;line-height:1.2">Nova expectativa da Diretoria</h1>
-            <p style="margin:0 0 22px;color:#536172;line-height:1.6">Expectativa anônima recebida. Os relatórios completos foram gerados e seguem anexados em PDF e Excel.</p>
+            <h1 style="margin:0 0 18px;color:#0b2574;font-size:24px;line-height:1.2">Nova resposta da Diretoria</h1>
+            <p style="margin:0 0 22px;color:#536172;line-height:1.6">Resposta anônima recebida. Os relatórios completos foram gerados e seguem anexados em PDF e Excel.</p>
             <div style="background:#0b2574;color:#ffffff;padding:22px;border-radius:8px">
-              <div style="font-size:12px;color:#9ff0bd;text-transform:uppercase;font-weight:700">Expectativa desta resposta</div>
+              <div style="font-size:12px;color:#9ff0bd;text-transform:uppercase;font-weight:700">Resultado desta resposta</div>
               <div style="display:flex;gap:28px;align-items:flex-end;margin-top:10px">
-                <div><div style="font-size:34px;font-weight:800">${score}</div><div style="font-size:12px;color:#dbe7ff">Nível esperado médio</div></div>
+                <div><div style="font-size:34px;font-weight:800">${score}</div><div style="font-size:12px;color:#dbe7ff">Nota média</div></div>
                 <div><div style="font-size:20px;font-weight:800">${safeClassification}</div><div style="font-size:12px;color:#dbe7ff">Classificação</div></div>
               </div>
             </div>
@@ -122,7 +122,7 @@ function buildMessage(expectation: NormalizedExpectation, settings: EmailSetting
               <tr><td style="padding:8px 0;color:#536172;width:120px">Avaliado</td><td style="padding:8px 0;font-weight:700">${safeLeaderName}</td></tr>
               <tr><td style="padding:8px 0;color:#536172">Respondente</td><td style="padding:8px 0">Anônimo</td></tr>
             </table>
-            <p style="margin:22px 0 0;color:#536172;font-size:13px;line-height:1.6">Esta é a expectativa de uma pessoa: o nível esperado só se fecha depois de consolidar toda a Diretoria.</p>
+            <p style="margin:22px 0 0;color:#536172;font-size:13px;line-height:1.6">Esta é a resposta de uma pessoa: os dados devem circular sempre agregados, nunca individualizados.</p>
           </div>
         </div>
       </body>
@@ -140,7 +140,7 @@ function toNodemailerAttachment(attachment: ReportAttachment) {
 }
 
 async function sendWithSmtp(
-  expectation: NormalizedExpectation,
+  assessment: NormalizedAssessment,
   reports: GeneratedReports,
   settings: EmailSettings,
 ): Promise<EmailDeliveryResult> {
@@ -160,15 +160,15 @@ async function sendWithSmtp(
     disableFileAccess: true,
     disableUrlAccess: true,
   });
-  const message = buildMessage(expectation, settings);
+  const message = buildMessage(assessment, settings);
   const result = await transporter.sendMail({
-    messageId: `<${expectation.submissionId}@pesquisa-diretores.sebraemt.local>`,
+    messageId: `<${assessment.submissionId}@pesquisa-diretores.sebraemt.local>`,
     from: settings.from,
     to: settings.recipients,
     subject: message.subject,
     text: message.text,
     html: message.html,
-    headers: { "X-Submission-ID": expectation.submissionId },
+    headers: { "X-Submission-ID": assessment.submissionId },
     attachments: [toNodemailerAttachment(reports.pdf), toNodemailerAttachment(reports.spreadsheet)],
   });
 
@@ -176,17 +176,17 @@ async function sendWithSmtp(
 }
 
 async function sendWithResend(
-  expectation: NormalizedExpectation,
+  assessment: NormalizedAssessment,
   reports: GeneratedReports,
   settings: EmailSettings,
 ): Promise<EmailDeliveryResult> {
-  const message = buildMessage(expectation, settings);
+  const message = buildMessage(assessment, settings);
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${requiredEnv("RESEND_API_KEY")}`,
       "Content-Type": "application/json",
-      "Idempotency-Key": expectation.submissionId,
+      "Idempotency-Key": assessment.submissionId,
     },
     body: JSON.stringify({
       from: settings.from,
@@ -209,14 +209,14 @@ async function sendWithResend(
   return { sent: true, provider: "resend", messageId: body?.id };
 }
 
-export async function deliverExpectationEmail(
-  expectation: NormalizedExpectation,
+export async function deliverAssessmentEmail(
+  assessment: NormalizedAssessment,
   reports: GeneratedReports,
 ): Promise<EmailDeliveryResult> {
   const settings = getEmailSettings();
   if (!settings.enabled) return { sent: false, provider: "disabled" };
 
   return settings.provider === "smtp"
-    ? sendWithSmtp(expectation, reports, settings)
-    : sendWithResend(expectation, reports, settings);
+    ? sendWithSmtp(assessment, reports, settings)
+    : sendWithResend(assessment, reports, settings);
 }

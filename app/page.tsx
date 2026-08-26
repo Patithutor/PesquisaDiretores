@@ -6,21 +6,21 @@ import { dimensions, levels } from "./survey-data";
 import { dimensionCountFor, isKnownLeader } from "./leaders";
 import LeaderCombobox from "./leader-combobox";
 
-const STORAGE_KEY = "sebraeExpectativaDiretoria";
+const STORAGE_KEY = "sebraeAvaliacaoDiretoria";
 const COMMENT_MAX_LENGTH = 2_000;
 
-type Expectation = {
-  /** Nível de maturidade esperado, de 1 a 5. */
-  expectedLevel: number;
+type Answer = {
+  /** Nível de maturidade observado, de 1 a 5. */
+  score: number;
   comment: string;
 };
 
-/** Expectativa de cada dimensão, indexada pelo número da dimensão. */
-type Expectations = Record<string, Expectation>;
+/** Resposta de cada dimensão, indexada pelo número da dimensão. */
+type Answers = Record<string, Answer>;
 
 type SavedDraft = {
   leaderName: string;
-  expectations: Expectations;
+  answers: Answers;
 };
 
 type SubmissionResponse = {
@@ -41,7 +41,7 @@ function readSavedDraft(): SavedDraft | null {
       // Um líder que saiu do lotacionograma não seleciona mais nada no campo:
       // melhor limpar do que deixar o rascunho travar no envio.
       const leaderName = isKnownLeader(parsed.leaderName) ? parsed.leaderName : "";
-      return { leaderName, expectations: parsed.expectations ?? {} };
+      return { leaderName, answers: parsed.answers ?? {} };
     }
   } catch {
     return null;
@@ -50,10 +50,10 @@ function readSavedDraft(): SavedDraft | null {
   return null;
 }
 
-export default function ExpectationPage() {
+export default function SurveyPage() {
   const [current, setCurrent] = useState(0);
   const [leaderName, setLeaderName] = useState("");
-  const [expectations, setExpectations] = useState<Expectations>({});
+  const [answers, setAnswers] = useState<Answers>({});
   const [identityError, setIdentityError] = useState(false);
   const [answerError, setAnswerError] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -76,15 +76,15 @@ export default function ExpectationPage() {
     const draft = readSavedDraft();
     if (draft) {
       setLeaderName(draft.leaderName);
-      setExpectations(draft.expectations);
+      setAnswers(draft.answers);
     }
     setHydrated(true);
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ leaderName, expectations }));
-  }, [expectations, hydrated, leaderName]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ leaderName, answers }));
+  }, [answers, hydrated, leaderName]);
 
   const progressLabel =
     current === 0
@@ -96,8 +96,8 @@ export default function ExpectationPage() {
   const activeDimension = current >= 1 && current <= dimensionCount ? activeDimensions[current - 1] : null;
 
   const completedAnswers = useMemo(
-    () => activeDimensions.filter((_, index) => expectations[String(index + 1)]?.expectedLevel).length,
-    [activeDimensions, expectations],
+    () => activeDimensions.filter((_, index) => answers[String(index + 1)]?.score).length,
+    [activeDimensions, answers],
   );
 
   function goTo(step: number) {
@@ -117,7 +117,7 @@ export default function ExpectationPage() {
       if (!valid) return;
     }
 
-    if (current >= 1 && current <= dimensionCount && !expectations[String(current)]?.expectedLevel) {
+    if (current >= 1 && current <= dimensionCount && !answers[String(current)]?.score) {
       setAnswerError(true);
       return;
     }
@@ -134,7 +134,7 @@ export default function ExpectationPage() {
     submissionIdRef.current ??= crypto.randomUUID();
 
     try {
-      const response = await fetch("/api/expectativa-diretoria", {
+      const response = await fetch("/api/avaliacao-diretoria", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -145,8 +145,8 @@ export default function ExpectationPage() {
           // para uma assessoria pode ter deixado respostas de sobra no rascunho.
           answers: activeDimensions.map((_, index) => ({
             dimension: index + 1,
-            expectedLevel: expectations[String(index + 1)]?.expectedLevel,
-            comment: expectations[String(index + 1)]?.comment ?? "",
+            score: answers[String(index + 1)]?.score,
+            comment: answers[String(index + 1)]?.comment ?? "",
           })),
         }),
       });
@@ -169,12 +169,12 @@ export default function ExpectationPage() {
     }
   }
 
-  function setExpectedLevel(expectedLevel: number) {
+  function setScore(score: number) {
     submissionIdRef.current = null;
     setSubmitError("");
-    setExpectations((previous) => ({
+    setAnswers((previous) => ({
       ...previous,
-      [String(current)]: { expectedLevel, comment: previous[String(current)]?.comment ?? "" },
+      [String(current)]: { score, comment: previous[String(current)]?.comment ?? "" },
     }));
     setAnswerError(false);
   }
@@ -182,9 +182,9 @@ export default function ExpectationPage() {
   function setComment(comment: string) {
     submissionIdRef.current = null;
     setSubmitError("");
-    setExpectations((previous) => ({
+    setAnswers((previous) => ({
       ...previous,
-      [String(current)]: { expectedLevel: previous[String(current)]?.expectedLevel ?? 0, comment },
+      [String(current)]: { score: previous[String(current)]?.score ?? 0, comment },
     }));
   }
 
@@ -205,7 +205,7 @@ export default function ExpectationPage() {
               <span className="brand-state">MT</span>
             </a>
             <div className="brand-product">
-              <b>Expectativa da Diretoria sobre a Liderança</b>
+              <b>Avaliação da Diretoria sobre a Liderança</b>
               <span>Régua de maturidade da liderança</span>
             </div>
           </div>
@@ -249,7 +249,7 @@ export default function ExpectationPage() {
             {current === 0 && (
               <section>
                 <p className="eyebrow">Etapa inicial</p>
-                <h1>Que nível de maturidade esperamos deste líder?</h1>
+                <h1>Qual o nível de maturidade do avaliado?</h1>
                 <h2 className="section-title">Como responder</h2>
                 <p className="lead">
                   Em cada uma das dimensões, leia atentamente as 5 descrições e selecione aquela que melhor
@@ -291,7 +291,8 @@ export default function ExpectationPage() {
                   </div>
                 </div>
                 <p className="instruction">
-                  Qual destes níveis o Sebrae/MT deve esperar deste líder nesta dimensão? Escolha apenas uma opção.
+                  Qual destas descrições melhor representa a atuação do avaliado nesta dimensão? Escolha apenas
+                  uma opção.
                 </p>
                 <div className="options">
                   {activeDimension.options.map((option, index) => (
@@ -300,8 +301,8 @@ export default function ExpectationPage() {
                         type="radio"
                         name={`d${current}`}
                         value={index + 1}
-                        checked={expectations[String(current)]?.expectedLevel === index + 1}
-                        onChange={() => setExpectedLevel(index + 1)}
+                        checked={answers[String(current)]?.score === index + 1}
+                        onChange={() => setScore(index + 1)}
                       />
                       <span className="option-copy">{option}</span>
                       <span className="choice-check" aria-hidden="true">✓</span>
@@ -315,14 +316,14 @@ export default function ExpectationPage() {
                   <textarea
                     id={`c${current}`}
                     name={`c${current}`}
-                    placeholder="Descreva o que justifica esse nível de expectativa para este líder."
+                    placeholder="Descreva um exemplo concreto que ilustra sua resposta."
                     maxLength={COMMENT_MAX_LENGTH}
-                    value={expectations[String(current)]?.comment ?? ""}
+                    value={answers[String(current)]?.comment ?? ""}
                     onChange={(event) => setComment(event.target.value)}
                   />
                   <small>
                     Evite informações sensíveis ou nomes de terceiros.{" "}
-                    {expectations[String(current)]?.comment?.length ?? 0}
+                    {answers[String(current)]?.comment?.length ?? 0}
                     /{COMMENT_MAX_LENGTH.toLocaleString("pt-BR")}
                   </small>
                 </div>
@@ -335,8 +336,8 @@ export default function ExpectationPage() {
             {current === reviewStep && (
               <section>
                 <p className="eyebrow">Revisão</p>
-                <h1>Confira a expectativa que você definiu</h1>
-                <p className="lead">Você pode voltar para ajustar qualquer dimensão antes de concluir.</p>
+                <h1>Confira suas respostas</h1>
+                <p className="lead">Você pode voltar para ajustar qualquer resposta antes de concluir.</p>
                 <div className="review">
                   <div className="review-item review-person">
                     <span className="review-number" aria-hidden="true">ID</span>
@@ -346,15 +347,15 @@ export default function ExpectationPage() {
                     </div>
                   </div>
                   {activeDimensions.map((dimension, index) => {
-                    const expectedLevel = expectations[String(index + 1)]?.expectedLevel;
+                    const score = answers[String(index + 1)]?.score;
                     return (
                       <div className="review-item" key={dimension.title}>
                         <span className="review-number" aria-hidden="true">{index + 1}</span>
                         <div className="review-content">
                           <b>
-                            {dimension.title} · nível {expectedLevel} ({levels[expectedLevel - 1]})
+                            {dimension.title} · nível {score} ({levels[score - 1]})
                           </b>
-                          <p>{dimension.options[expectedLevel - 1] ?? "Resposta não encontrada"}</p>
+                          <p>{dimension.options[score - 1] ?? "Resposta não encontrada"}</p>
                         </div>
                       </div>
                     );
@@ -370,10 +371,10 @@ export default function ExpectationPage() {
               <section className="done">
                 <div className="done-icon" aria-hidden="true">✓</div>
                 <p className="eyebrow">Concluído</p>
-                <h1>Expectativa registrada</h1>
+                <h1>Avaliação enviada</h1>
                 <p className="lead">
-                  Sua expectativa foi registrada de forma anônima e será consolidada com a dos demais membros da
-                  Diretoria para fechar o nível esperado de cada dimensão.
+                  Sua resposta foi registrada de forma anônima e será consolidada com a dos demais membros da
+                  Diretoria.
                   {submission?.emailSent
                     ? " Os relatórios em PDF e Excel também foram enviados aos responsáveis pela pesquisa."
                     : ""}
@@ -392,7 +393,7 @@ export default function ExpectationPage() {
               <div className="right-actions">
                 {current === reviewStep ? (
                   <button className="btn btn-primary" type="submit" disabled={submitting}>
-                    {submitting ? "Gerando e enviando…" : "Enviar expectativa"}
+                    {submitting ? "Gerando e enviando…" : "Enviar respostas"}
                   </button>
                 ) : (
                   <button className="btn btn-primary" type="button" onClick={continueSurvey}>Continuar</button>
@@ -405,7 +406,7 @@ export default function ExpectationPage() {
         <footer className="privacy">
           <span>Instrumento de desenvolvimento • Sebrae / MT</span>
           <span>
-            Defina a expectativa pelo papel que este líder ocupa, não por episódios recentes.
+            Responda com sinceridade e baseie sua escolha em comportamentos observáveis.
             {completedAnswers > 0 && current !== doneStep ? ` ${completedAnswers} de ${dimensionCount} dimensões definidas.` : ""}
           </span>
         </footer>

@@ -1,16 +1,16 @@
 import "server-only";
 
 import { get, list, put } from "@vercel/blob";
-import type { NormalizedExpectation } from "./expectation";
+import type { NormalizedAssessment } from "./assessment";
 
-const PREFIX = "expectativas/";
+const PREFIX = "respostas/";
 
 export type StoredAnswer = {
   dimension: number;
   title: string;
-  expectedLevel: number;
-  levelName: string;
-  expectedOption: string;
+  score: number;
+  level: string;
+  selectedOption: string;
   comment: string;
 };
 
@@ -38,29 +38,29 @@ function slugify(value: string) {
 
 // Não guardamos IP, cabeçalhos nem qualquer identificação de quem respondeu:
 // a tela promete anonimato, como na pesquisa de colaboradores.
-function toStoredSubmission(expectation: NormalizedExpectation): StoredSubmission {
+function toStoredSubmission(assessment: NormalizedAssessment): StoredSubmission {
   return {
-    submissionId: expectation.submissionId,
-    leaderName: expectation.leaderName,
-    completedAt: expectation.completedAt.toISOString(),
-    average: expectation.result.average,
-    classification: expectation.result.classification,
-    answers: expectation.answers.map((answer) => ({
+    submissionId: assessment.submissionId,
+    leaderName: assessment.leaderName,
+    completedAt: assessment.completedAt.toISOString(),
+    average: assessment.result.average,
+    classification: assessment.result.classification,
+    answers: assessment.answers.map((answer) => ({
       dimension: answer.dimension,
       title: answer.title,
-      expectedLevel: answer.expectedLevel,
-      levelName: answer.levelName,
-      expectedOption: answer.expectedOption,
+      score: answer.score,
+      level: answer.level,
+      selectedOption: answer.selectedOption,
       comment: answer.comment,
     })),
   };
 }
 
-export async function saveSubmission(expectation: NormalizedExpectation) {
+export async function saveSubmission(assessment: NormalizedAssessment) {
   if (!isBlobConfigured()) return null;
 
-  const record = toStoredSubmission(expectation);
-  const pathname = `${PREFIX}${slugify(expectation.leaderName)}/${record.completedAt}-${expectation.submissionId}.json`;
+  const record = toStoredSubmission(assessment);
+  const pathname = `${PREFIX}${slugify(assessment.leaderName)}/${record.completedAt}-${assessment.submissionId}.json`;
 
   const blob = await put(pathname, JSON.stringify(record, null, 2), {
     access: "private",

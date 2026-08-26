@@ -5,7 +5,7 @@ import path from "node:path";
 import { PDFDocument, PDFPage, PDFFont, PageSizes, StandardFonts, rgb } from "pdf-lib";
 import * as XLSX from "xlsx";
 import { levels } from "../survey-data";
-import type { NormalizedExpectation } from "./expectation";
+import type { NormalizedAssessment } from "./assessment";
 
 const BRAND = {
   blue: rgb(42 / 255, 79 / 255, 218 / 255),
@@ -176,39 +176,39 @@ function drawFooter(page: PDFPage, regular: PDFFont, pageNumber: number, pageCou
   });
 }
 
-export function generateSpreadsheetReport(expectation: NormalizedExpectation): Buffer {
-  const answerRows = expectation.answers.map((answer) => [
+export function generateSpreadsheetReport(assessment: NormalizedAssessment): Buffer {
+  const answerRows = assessment.answers.map((answer) => [
     answer.dimension,
     answer.title,
-    answer.expectedLevel,
-    answer.levelName,
-    answer.expectedOption,
+    answer.score,
+    answer.level,
+    answer.selectedOption,
     answer.comment || "Não informado",
   ]);
 
   const responses = XLSX.utils.aoa_to_sheet([
-    ["Nº", "Dimensão", "Nível esperado", "Classificação", "Descrição do nível esperado", "Comentário"],
+    ["Nº", "Dimensão", "Nota", "Nível", "Resposta escolhida", "Comentário"],
     ...answerRows,
   ]);
   responses["!cols"] = [{ wch: 6 }, { wch: 34 }, { wch: 15 }, { wch: 20 }, { wch: 92 }, { wch: 55 }];
-  responses["!rows"] = [{ hpt: 24 }, ...expectation.answers.map(() => ({ hpt: 58 }))];
-  responses["!autofilter"] = { ref: `A1:F${expectation.answers.length + 1}` };
-  for (let row = 2; row <= expectation.answers.length + 1; row += 1) {
+  responses["!rows"] = [{ hpt: 24 }, ...assessment.answers.map(() => ({ hpt: 58 }))];
+  responses["!autofilter"] = { ref: `A1:F${assessment.answers.length + 1}` };
+  for (let row = 2; row <= assessment.answers.length + 1; row += 1) {
     responses[`C${row}`].z = "0";
   }
 
   const classificationFormula =
     'IF(B8<1.8,"Inércia",IF(B8<2.6,"Acreditar",IF(B8<3.4,"Praticar",IF(B8<4.2,"Melhorar","Compartilhar"))))';
   const summary = XLSX.utils.aoa_to_sheet([
-    ["EXPECTATIVA DA DIRETORIA SOBRE A LIDERANÇA | SEBRAE / MT"],
+    ["AVALIAÇÃO DA DIRETORIA SOBRE A LIDERANÇA | SEBRAE / MT"],
     [],
-    ["Avaliado", expectation.leaderName],
+    ["Avaliado", assessment.leaderName],
     ["Respondente", "Anônimo"],
-    ["Respondida em", expectation.completedAt],
+    ["Respondida em", assessment.completedAt],
     [],
-    ["EXPECTATIVA DECLARADA"],
-    ["Nível esperado médio", expectation.result.average],
-    ["Classificação", expectation.result.classification],
+    ["RESULTADO"],
+    ["Nota média", assessment.result.average],
+    ["Classificação", assessment.result.classification],
     [],
     ["Faixa", "Classificação"],
     ["1,00 a 1,79", "Inércia"],
@@ -222,20 +222,20 @@ export function generateSpreadsheetReport(expectation: NormalizedExpectation): B
   summary.B5.z = "dd/mm/yyyy hh:mm";
   summary.B8 = {
     t: "n",
-    v: expectation.result.average,
-    f: `ROUND(AVERAGE('Respostas'!C2:C${expectation.answers.length + 1}),2)`,
+    v: assessment.result.average,
+    f: `ROUND(AVERAGE('Respostas'!C2:C${assessment.answers.length + 1}),2)`,
     z: "0.00",
   };
-  summary.B9 = { t: "s", v: expectation.result.classification, f: classificationFormula };
+  summary.B9 = { t: "s", v: assessment.result.classification, f: classificationFormula };
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, summary, "Resumo");
   XLSX.utils.book_append_sheet(workbook, responses, "Respostas");
   workbook.Props = {
-    Title: "Expectativa da Diretoria sobre a liderança",
-    Subject: `Expectativa definida para ${expectation.leaderName}`,
+    Title: "Avaliação da Diretoria sobre a liderança",
+    Subject: `Avaliação de ${assessment.leaderName}`,
     Author: "Sebrae / MT",
-    CreatedDate: expectation.completedAt,
+    CreatedDate: assessment.completedAt,
   };
   workbook.Workbook = workbook.Workbook ?? {};
   (workbook.Workbook as { CalcPr?: { calcMode: string } }).CalcPr = { calcMode: "auto" };
@@ -243,7 +243,7 @@ export function generateSpreadsheetReport(expectation: NormalizedExpectation): B
   return Buffer.from(XLSX.write(workbook, { type: "buffer", bookType: "xlsx", compression: true }));
 }
 
-export async function generatePdfReport(expectation: NormalizedExpectation): Promise<Buffer> {
+export async function generatePdfReport(assessment: NormalizedAssessment): Promise<Buffer> {
   const document = await PDFDocument.create();
   const regular = await document.embedFont(StandardFonts.Helvetica);
   const bold = await document.embedFont(StandardFonts.HelveticaBold);
@@ -251,12 +251,12 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
   const [pageWidth, pageHeight] = PageSizes.A4;
 
   const cover = document.addPage(PageSizes.A4);
-  drawHeader(cover, bold, logoPath, "EXPECTATIVA DA DIRETORIA");
+  drawHeader(cover, bold, logoPath, "AVALIAÇÃO DA DIRETORIA");
 
   cover.drawText("Régua de maturidade da liderança", { x: 42, y: 686, size: 10, font: bold, color: BRAND.blue });
-  cover.drawText("Expectativa da Diretoria", { x: 42, y: 646, size: 28, font: bold, color: BRAND.ink });
+  cover.drawText("Avaliação da Diretoria", { x: 42, y: 646, size: 28, font: bold, color: BRAND.ink });
   const introLines = wrapText(
-    `Este relatório registra o nível de maturidade que a Diretoria espera deste líder nas ${expectation.answers.length} dimensões da régua que se aplicam a ele. É uma resposta anônima: consolide com as demais antes de qualquer devolutiva.`,
+    `Este relatório apresenta a resposta anônima de um membro da Diretoria sobre as ${assessment.answers.length} dimensões de liderança que se aplicam a esta pessoa. Consolide com as respostas dos demais antes de qualquer devolutiva.`,
     regular,
     11,
     500,
@@ -265,17 +265,17 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
 
   cover.drawRectangle({ x: 42, y: 405, width: pageWidth - 84, height: 164, color: BRAND.atlantic });
   cover.drawRectangle({ x: 42, y: 557, width: pageWidth - 84, height: 12, color: BRAND.mint });
-  cover.drawText("NÍVEL ESPERADO MÉDIO", { x: 68, y: 527, size: 9, font: bold, color: BRAND.mint });
-  cover.drawText(formatScore(expectation.result.average), { x: 68, y: 464, size: 48, font: bold, color: BRAND.white });
+  cover.drawText("NOTA MÉDIA", { x: 68, y: 527, size: 9, font: bold, color: BRAND.mint });
+  cover.drawText(formatScore(assessment.result.average), { x: 68, y: 464, size: 48, font: bold, color: BRAND.white });
   cover.drawText("CLASSIFICAÇÃO", { x: 300, y: 527, size: 9, font: bold, color: BRAND.sky });
-  cover.drawText(expectation.result.classification, { x: 300, y: 486, size: 23, font: bold, color: BRAND.white });
+  cover.drawText(assessment.result.classification, { x: 300, y: 486, size: 23, font: bold, color: BRAND.white });
   cover.drawText("Escala de maturidade: 1,00 a 5,00", { x: 300, y: 458, size: 9.5, font: regular, color: BRAND.white });
 
   const scaleLabels = [...levels];
   const scaleColors = [BRAND.line, BRAND.sky, BRAND.canary, BRAND.blue, BRAND.mint];
   const scaleY = 335;
   const segmentWidth = (pageWidth - 84 - 16) / 5;
-  const activeIndex = scaleLabels.indexOf(expectation.result.classification);
+  const activeIndex = scaleLabels.indexOf(assessment.result.classification);
   scaleLabels.forEach((label, index) => {
     const x = 42 + index * segmentWidth;
     cover.drawRectangle({
@@ -298,7 +298,7 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
   });
 
   cover.drawText("Avaliado", { x: 42, y: 236, size: 8, font: bold, color: BRAND.blue });
-  const leaderLines = wrapText(expectation.leaderName, bold, 12, 248).slice(0, 2);
+  const leaderLines = wrapText(assessment.leaderName, bold, 12, 248).slice(0, 2);
   drawTextLines(cover, leaderLines, {
     x: 42,
     y: 216,
@@ -316,7 +316,7 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
     color: BRAND.muted,
   });
   cover.drawText("Respondida em", { x: 324, y: 236, size: 8, font: bold, color: BRAND.blue });
-  cover.drawText(normalizePdfText(formatDate(expectation.completedAt)), {
+  cover.drawText(normalizePdfText(formatDate(assessment.completedAt)), {
     x: 324,
     y: 216,
     size: 9.5,
@@ -329,8 +329,8 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
   let y = pageHeight - 116;
   let cardsOnPage = 0;
 
-  for (const answer of expectation.answers) {
-    const optionLines = wrapText(answer.expectedOption, regular, 9.2, pageWidth - 132);
+  for (const answer of assessment.answers) {
+    const optionLines = wrapText(answer.selectedOption, regular, 9.2, pageWidth - 132);
     const commentLines = wrapText(answer.comment || "Não informado.", regular, 8.7, pageWidth - 132);
     const cardHeight = 83 + optionLines.length * 12 + commentLines.length * 11;
 
@@ -354,7 +354,7 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
     });
     page.drawText(normalizePdfText(answer.title), { x: 100, y: y - 24, size: 12, font: bold, color: BRAND.ink });
 
-    const levelLabel = `${answer.expectedLevel} | ${answer.levelName}`;
+    const levelLabel = `${answer.score} | ${answer.level}`;
     const levelWidth = bold.widthOfTextAtSize(levelLabel, 8.2) + 18;
     page.drawRectangle({ x: pageWidth - 58 - levelWidth, y: y - 34, width: levelWidth, height: 24, color: BRAND.mint });
     page.drawText(levelLabel, {
@@ -365,7 +365,7 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
       color: BRAND.atlantic,
     });
 
-    page.drawText("NÍVEL ESPERADO", { x: 58, y: y - 54, size: 7.2, font: bold, color: BRAND.blue });
+    page.drawText("RESPOSTA ESCOLHIDA", { x: 58, y: y - 54, size: 7.2, font: bold, color: BRAND.blue });
     let contentY = drawTextLines(page, optionLines, {
       x: 58,
       y: y - 69,
@@ -392,21 +392,21 @@ export async function generatePdfReport(expectation: NormalizedExpectation): Pro
   const pages = document.getPages();
   pages.forEach((currentPage, index) => drawFooter(currentPage, regular, index + 1, pages.length));
 
-  document.setTitle(`Expectativa da Diretoria - ${expectation.leaderName}`);
+  document.setTitle(`Avaliação da Diretoria - ${assessment.leaderName}`);
   document.setAuthor("Sebrae / MT");
   document.setSubject(
-    `Nível esperado: ${expectation.result.classification} (${formatScore(expectation.result.average)})`,
+    `Resultado: ${assessment.result.classification} (${formatScore(assessment.result.average)})`,
   );
-  document.setCreationDate(expectation.completedAt);
+  document.setCreationDate(assessment.completedAt);
 
   return Buffer.from(await document.save());
 }
 
-export async function generateReports(expectation: NormalizedExpectation): Promise<GeneratedReports> {
-  const baseName = `expectativa-diretoria-${slugify(expectation.leaderName)}-${expectation.submissionId.slice(0, 8)}`;
+export async function generateReports(assessment: NormalizedAssessment): Promise<GeneratedReports> {
+  const baseName = `avaliacao-diretoria-${slugify(assessment.leaderName)}-${assessment.submissionId.slice(0, 8)}`;
   const [pdfContent, spreadsheetContent] = await Promise.all([
-    generatePdfReport(expectation),
-    Promise.resolve(generateSpreadsheetReport(expectation)),
+    generatePdfReport(assessment),
+    Promise.resolve(generateSpreadsheetReport(assessment)),
   ]);
 
   return {

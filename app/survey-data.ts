@@ -12,12 +12,12 @@ export type Dimension = {
 };
 
 // Âncoras comportamentais da aba "Diretoria" da Régua de Maturidade da Liderança
-// Sebrae/MT ("EXPECTATIVA INSTITUCIONAL"): a Diretoria define, em cada dimensão,
-// o nível de maturidade esperado da liderança do Sebrae/MT.
+// Sebrae/MT: a Diretoria registra, em cada dimensão, o nível de maturidade
+// observado no avaliado nos últimos 6 meses.
 //
 // Os 16 títulos e os 5 textos-âncora são idênticos aos da aba "Questionário
-// Colaborador" — o que muda entre os dois instrumentos é a pergunta, não a
-// régua: lá se registra a prática observada, aqui a expectativa institucional.
+// Colaborador": as duas pesquisas medem a mesma coisa na mesma régua, mudando
+// só quem responde — lá a equipe, aqui a Diretoria.
 export const dimensions = [
   {
     title: "Responsabilização",

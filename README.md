@@ -1,36 +1,35 @@
-# Expectativa da Diretoria sobre a Liderança — Sebrae / MT
+# Avaliação da Diretoria sobre a Liderança — Sebrae / MT
 
 Questionário da **Diretoria** da Régua de Maturidade da Liderança do Sebrae / MT.
-Para cada pessoa do lotacionograma, os membros da Diretoria definem, nas 16
-dimensões de liderança, o nível de maturidade que a instituição deve esperar
-dela — em escala de 1 a 5 com âncoras comportamentais. Cada dimensão tem um
-comentário opcional. Assessorias respondem uma versão mais curta, com 9
-dimensões (veja abaixo).
+Para cada pessoa do lotacionograma, os membros da Diretoria registram, nas 16
+dimensões de liderança, o nível de maturidade observado nos últimos 6 meses —
+em escala de 1 a 5 com âncoras comportamentais e um comentário opcional por
+dimensão. Assessorias respondem uma versão mais curta, com 9 dimensões
+(veja abaixo).
 
 As dimensões e as âncoras vêm da aba **Diretoria** da planilha
 `Regua_Maturidade_SebraeMT_BASE.xlsx` e estão em `app/survey-data.ts`.
 
-## Diferenças em relação à pesquisa de colaboradores
+## Relação com a pesquisa de colaboradores
 
 Esta aplicação é uma cópia de
-[`PesquisaColaboradores`](https://github.com/Patithutor/PesquisaColaboradores)
-com o questionário na visão da Diretoria. Os 16 títulos e os 5 textos-âncora são
-**idênticos** nas duas abas da planilha: o que muda é a pergunta, não a régua.
+[`PesquisaColaboradores`](https://github.com/Patithutor/PesquisaColaboradores).
+Os 16 títulos e os 5 textos-âncora são idênticos nas duas abas da planilha, e as
+duas pesquisas medem a mesma coisa na mesma régua — muda quem responde:
 
 | | Colaboradores | Diretores (este repositório) |
 | --- | --- | --- |
-| Pergunta | Como o gestor **pratica** cada dimensão hoje | Que nível se deve **esperar** daquele líder |
-| Primeira etapa | Seleção do líder avaliado | Igual: seleção do avaliado |
+| Quem responde | A equipe do gestor | Os membros da Diretoria |
+| Sobre quem | Um líder do lotacionograma | Qualquer pessoa do lotacionograma |
+| Assessorias | Fora da lista | Na lista, com 9 dimensões |
 | Respondente | Anônimo | Anônimo |
-| Campo aberto | Comentário opcional por dimensão | Igual: comentário opcional |
-| Consolidação | Média da equipe por líder | Nível esperado de consenso por dimensão |
+| Campo aberto | Comentário opcional por dimensão | Igual |
 
-As duas pesquisas se consolidam pela mesma chave — o nome do líder no
-lotacionograma —, o que permite comparar a prática percebida pela equipe com a
-expectativa definida pela Diretoria.
+As duas se consolidam pela mesma chave — o nome no lotacionograma —, o que
+permite comparar a percepção da equipe com a da Diretoria sobre a mesma pessoa.
 
-Cada envio gera o relatório de uma única resposta. O nível esperado só se fecha
-depois de consolidar as respostas de toda a Diretoria.
+Cada envio gera o relatório de uma única resposta. Os dados devem ser
+consolidados e circular sempre de forma agregada, nunca individualizados.
 
 ## Executar localmente
 
@@ -50,7 +49,7 @@ npm run check
 npm run build
 ```
 
-## Lista de líderes
+## Lista de avaliados
 
 O campo "Avaliado" é o mesmo combobox com busca da PesquisaColaboradores
 (`app/leader-combobox.tsx`), alimentado por `app/leaders.ts`, gerado a partir do
@@ -59,8 +58,7 @@ pelas 5 unidades organizacionais, na ordem do lotacionograma, com os nomes em
 ordem alfabética dentro de cada uma.
 
 Diferente da PesquisaColaboradores, aqui as **assessorias entram na lista** —
-marcadas com `assessor: true` — porque a Diretoria também define expectativa
-para elas.
+marcadas com `assessor: true` — porque a Diretoria também as avalia.
 
 A busca ignora acentos e caixa, e casa também com o cargo e a área — "sinop"
 ou "gerente de mercado" encontram a pessoa certa. O cabeçalho de cada grupo
@@ -68,11 +66,11 @@ acompanha a rolagem, a busca esconde os grupos sem resultado e a navegação por
 teclado corre a lista inteira, atravessando as fronteiras de grupo.
 
 O nome escolhido também é validado no servidor contra essa lista. É o que
-garante que todas as expectativas definidas para um mesmo gestor sejam
-consolidadas juntas, sem variações de grafia.
+garante que todas as respostas sobre uma mesma pessoa sejam consolidadas
+juntas, sem variações de grafia.
 
 Quando o lotacionograma mudar, atualize `app/leaders.ts` e refaça o deploy. Um
-rascunho salvo no navegador que aponte para um líder removido tem o campo limpo
+rascunho salvo no navegador que aponte para alguém removido tem o campo limpo
 automaticamente, em vez de travar no envio.
 
 ## Questionário reduzido das assessorias
@@ -83,8 +81,8 @@ pessoas e não se aplicam.
 
 A regra vive em `dimensionCountFor()` (`app/leaders.ts`) e vale para toda a
 aplicação: o número de etapas e a barra de progresso se ajustam, e o servidor
-exige exatamente 9 níveis — nem mais, nem menos — quando o líder escolhido é
-uma assessoria. Nos relatórios e no consolidado aparecem só as dimensões
+exige exatamente 9 respostas — nem mais, nem menos — quando o avaliado é uma
+assessoria. Nos relatórios e no consolidado aparecem só as dimensões
 respondidas.
 
 A busca é pelo **título** da dimensão, não pela posição: se a ordem da régua
@@ -94,9 +92,8 @@ da régua, o questionário fica inteiro em vez de encurtar no lugar errado.
 ## Armazenamento das respostas
 
 Cada resposta é gravada como um JSON no **Vercel Blob**, em
-`expectativas/<avaliado>/<data>-<id>.json`. O registro guarda apenas o avaliado, os
-níveis esperados e os comentários — nunca IP ou qualquer identificação de quem
-respondeu.
+`respostas/<avaliado>/<data>-<id>.json`. O registro guarda apenas o avaliado, as
+notas e os comentários — nunca IP ou qualquer identificação de quem respondeu.
 
 Crie o Blob store no painel do Vercel com **acesso privado** (o modo de acesso
 não pode ser alterado depois da criação) e conecte-o ao projeto; o
@@ -113,12 +110,12 @@ depois da gravação, a resposta é preservada e o envio é confirmado normalmen
 `GET /api/respostas?token=$EXPORT_TOKEN` devolve um `.xlsx` consolidado com:
 
 - **Resumo** — um avaliado por linha, com número de respondentes, quantas
-  dimensões se aplicam a ele, nível esperado médio e classificação na régua;
-- **uma aba por avaliado** — no layout da aba `Diretoria` da régua: dimensões nas
-  linhas, respondentes nas colunas (R1..Rn), a média, o **nível esperado de
-  consenso** (média arredondada para a régua de 1 a 5) e a amplitude entre o
-  menor e o maior nível, que mostra onde a Diretoria ainda não convergiu sobre
-  aquele líder;
+  dimensões se aplicam a ele, nota média e classificação na régua;
+- **uma aba por avaliado** — no layout da aba `Diretoria` da régua: dimensões
+  nas linhas, respondentes nas colunas (R1..Rn), a média, o **nível de
+  consenso** (média arredondada para a régua de 1 a 5) e a amplitude entre a
+  menor e a maior nota, que mostra onde a Diretoria ainda não convergiu sobre
+  aquela pessoa;
 - **Respostas** — formato longo, uma linha por dimensão respondida, com os
   comentários;
 - **Escala** — níveis e faixas de classificação.

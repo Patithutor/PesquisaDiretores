@@ -1,5 +1,5 @@
-import { deliverExpectationEmail } from "../../lib/email";
-import { normalizeExpectation, validateExpectationSubmission } from "../../lib/expectation";
+import { deliverAssessmentEmail } from "../../lib/email";
+import { normalizeAssessment, validateAssessmentSubmission } from "../../lib/assessment";
 import { generateReports, saveReportsLocally } from "../../lib/reports";
 import { saveSubmission } from "../../lib/storage";
 
@@ -19,10 +19,10 @@ const RATE_LIMIT_MAX_REQUESTS = positiveIntegerEnv("RATE_LIMIT_MAX_REQUESTS", 30
 type RateLimitEntry = { count: number; expiresAt: number };
 
 const globalRateLimit = globalThis as typeof globalThis & {
-  expectationRateLimit?: Map<string, RateLimitEntry>;
+  assessmentRateLimit?: Map<string, RateLimitEntry>;
 };
-const rateLimit = globalRateLimit.expectationRateLimit ?? new Map<string, RateLimitEntry>();
-globalRateLimit.expectationRateLimit = rateLimit;
+const rateLimit = globalRateLimit.assessmentRateLimit ?? new Map<string, RateLimitEntry>();
+globalRateLimit.assessmentRateLimit = rateLimit;
 
 function json(body: object, status = 200) {
   return Response.json(body, {
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     return json({ ok: false, message: "Não foi possível interpretar os dados enviados." }, 400);
   }
 
-  const validation = validateExpectationSubmission(payload);
+  const validation = validateAssessmentSubmission(payload);
   if (!validation.ok) return json({ ok: false, message: validation.message }, 400);
 
   if (validation.value.website) {
@@ -103,24 +103,24 @@ export async function POST(request: Request) {
     return json({ ok: false, message: "Muitas tentativas de envio. Aguarde alguns minutos e tente novamente." }, 429);
   }
 
-  const expectation = normalizeExpectation(validation.value);
+  const assessment = normalizeAssessment(validation.value);
 
   // O Blob é o registro definitivo da resposta: grava antes dos relatórios,
-  // para que uma falha no PDF ou no e-mail não descarte a expectativa enviada.
+  // para que uma falha no PDF ou no e-mail não descarte a resposta enviada.
   let storedPath: string | null = null;
   try {
-    storedPath = await saveSubmission(expectation);
+    storedPath = await saveSubmission(assessment);
   } catch (error) {
     console.error("Falha ao gravar resposta no Blob", {
-      submissionId: expectation.submissionId,
+      submissionId: assessment.submissionId,
       error: error instanceof Error ? error.message : String(error),
     });
   }
 
   try {
-    const reports = await generateReports(expectation);
+    const reports = await generateReports(assessment);
     const localDirectory = await saveReportsLocally(reports);
-    const delivery = await deliverExpectationEmail(expectation, reports);
+    const delivery = await deliverAssessmentEmail(assessment, reports);
 
     if (!storedPath && !delivery.sent && !localDirectory) {
       throw new Error("Nenhum destino de resposta está habilitado.");
@@ -134,7 +134,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Falha ao processar resposta da pesquisa", {
-      submissionId: expectation.submissionId,
+      submissionId: assessment.submissionId,
       stored: Boolean(storedPath),
       error: error instanceof Error ? error.message : String(error),
     });

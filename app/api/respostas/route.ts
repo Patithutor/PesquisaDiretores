@@ -68,7 +68,7 @@ export async function GET(request: Request) {
 
     const generatedAt = new Date();
     const workbook = buildConsolidatedWorkbook(submissions, generatedAt);
-    const filename = `expectativa-institucional-consolidado-${generatedAt.toISOString().slice(0, 10)}.xlsx`;
+    const filename = `avaliacao-diretoria-consolidado-${generatedAt.toISOString().slice(0, 10)}.xlsx`;
 
     return new Response(new Uint8Array(workbook), {
       status: 200,
